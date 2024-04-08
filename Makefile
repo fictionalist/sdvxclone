@@ -8,31 +8,42 @@ ifeq ($(VERBOSE),YES)
 	V_CXX = $(CXX)
 	AT := 
 else
-	V_CC = @echo "Building $<..."; $(CC)
-	V_CXX = @echo "Building $<..."; $(CXX)
+	V_CC = @echo "	Building $@..."; $(CC)
+	V_CXX = @echo "	Building $@..."; $(CXX)
 	AT := @
 endif
 
-FIND := C:/msys64/usr/bin/find
-MKDIR := C:/msys64/usr/bin/mkdir
-CP := C:/msys64/usr/bin/cp
+MSYS64 := C:/msys64
+FIND := $(MSYS64)/usr/bin/find
+MKDIR := $(MSYS64)/usr/bin/mkdir
+CP := $(MSYS64)/usr/bin/cp
+PWD := $(MSYS64)/usr/bin/pwd
 
-SRC_DIR := ./src
-OUT_DIR := ./bin
-BUILD_DIR := ./build
-LIB_DIR := ./lib
+PROJECT_DIR := $(shell $(PWD))
 
-INCDIRS := $(shell $(FIND) $(SRC_DIR) -type d) $(LIB_DIR)/glew-2.2.0/include $(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/include
+SRC_DIR := $(PROJECT_DIR)/src
+OUT_DIR := $(PROJECT_DIR)/bin
+BUILD_DIR := $(PROJECT_DIR)/build
+LIB_DIR := $(PROJECT_DIR)/lib
+
+INCDIRS := $(shell $(FIND) $(SRC_DIR) -type d) \
+		   $(LIB_DIR)/glew-2.2.0/include \
+		   $(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/include \
+		   $(LIB_DIR)/glm-1.0.1-light/include
+
 INCFLAGS := $(addprefix -I,$(INCDIRS))
 
-LINKDIRS := $(LIB_DIR)/glew-2.2.0/lib/Release/x64 $(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/lib
-LINKLIBS := glew32 libSDL2
+LINKDIRS := $(LIB_DIR)/glew-2.2.0/lib/Release/x64 \
+			$(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/lib
+
+LINKLIBS := glew32 libSDL2 opengl32
 LINKFLAGS := $(addprefix -L,$(LINKDIRS)) $(addprefix -l,$(LINKLIBS))
 
 CFLAGS := -std=c17 -O2 -g3
 CXXFLAGS := -std=c++23 -O2 -g3
 CPPFLAGS := $(INCFLAGS) -MMD -MP
 LDFLAGS := -Wl,-Map="$(OUT_DIR)/$(PROGRAM_NAME).map" $(LINKFLAGS)
+EXTRAFLAGS := -fdiagnostics-color=always
 
 SRC_FILES := $(shell $(FIND) $(SRC_DIR) -name '*.cpp' -or -name '*.c')
 OBJ_FILES := $(SRC_FILES:$(SRC_DIR)/%=$(BUILD_DIR)/%.o)
@@ -50,14 +61,20 @@ $(OUT_DIR):
 	$(AT)-$(MKDIR) -p $(OUT_DIR)
 
 $(PROGRAM_NAME): $(OBJ_FILES) | $(OUT_DIR)
-	$(V_CXX) $(OBJ_FILES) $(LDFLAGS) -o $(OUT_DIR)/$@
-	-$(CP) $(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/bin/SDL2.dll $(OUT_DIR)
+	$(V_CXX) $(OBJ_FILES) $(EXTRAFLAGS) -o $(OUT_DIR)/$@ $(LDFLAGS)
+	@echo Copying dependency libraries...
+	@-$(CP) $(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/bin/SDL2.dll $(OUT_DIR)
+	@-$(CP) $(LIB_DIR)/glew-2.2.0/bin/Release/x64/glew32.dll $(OUT_DIR)
+	@-$(CP) $(MSYS64)/ucrt64/bin/libstdc++-6.dll $(OUT_DIR)
+	@echo Build finished.
 
 $(BUILD_DIR)/%.c.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
-	$(V_CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+	$(AT)-$(MKDIR) -p $(dir $@)
+	$(V_CC) $(CPPFLAGS) $(CFLAGS) $(EXTRAFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
-	$(V_CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+	$(AT)-$(MKDIR) -p $(dir $@)
+	$(V_CXX) $(CPPFLAGS) $(CXXFLAGS) $(EXTRAFLAGS) -c $< -o $@
 
 clean:
 	@echo Deleting object files...

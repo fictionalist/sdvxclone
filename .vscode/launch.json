@@ -9,7 +9,7 @@
       "stopAtEntry": false,
       "externalConsole": true,
       "cwd": "d:/c-projects/sdvxclone/sdvxclone/src",
-      "program": "d:/c-projects/sdvxclone/sdvxclone/src/build/Debug/outDebug",
+      "program": "d:/c-projects/sdvxclone/sdvxclone/bin/sdvxclone.exe",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

@@ -1,0 +1,2 @@
+[2024/03/08 00:31:37] [E]: Failed to open shader "./data/shaders/default.vert"
+[2024/03/08 00:31:37] [E]: Failed to open shader "./data/shaders/default.frag"
