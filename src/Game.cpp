@@ -7,11 +7,14 @@
 
 #include "engine/Logging.hpp"
 #include "engine/Renderer.hpp"
+#include "engine/Scene.hpp"
 
 namespace Game {
-    static SDL_Window* gameWindow = NULL;
-    static SDL_GLContext glContext = NULL;
+    static SDL_Window* gameWindow = nullptr;
+    static SDL_GLContext glContext = nullptr;
     static bool running = false;
+
+    static Scene* currentScene = nullptr;
 
     void handleEvent(SDL_Event*);
 }
@@ -32,7 +35,7 @@ bool Game::init() {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
-    gameWindow = SDL_CreateWindow("SDVX Clone",
+    gameWindow = SDL_CreateWindow("SDVX Clone - frames per second: 0.00",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         1280, 720,
         SDL_WINDOW_OPENGL);
@@ -70,12 +73,10 @@ void Game::handleEvent(SDL_Event* event) {
 void Game::loop() {
     SDL_Event event;
 
-    unsigned long long frameCurrent, frameLast;
     unsigned long long renderFrameStart, renderFrameEnd;
-    frameCurrent = frameLast = SDL_GetPerformanceCounter();
     double renderFrameTime = 0.0;
     renderFrameStart = renderFrameEnd = SDL_GetPerformanceCounter();
-    double frameTime = 0.0;
+    unsigned int frameCount = 0;
     char buf[128];
 
     while (running) {
@@ -84,17 +85,22 @@ void Game::loop() {
         }
         Renderer::draw();
         SDL_GL_SwapWindow(gameWindow);
+        frameCount++;
         renderFrameEnd = SDL_GetPerformanceCounter();
-        frameCurrent = renderFrameEnd;
         renderFrameTime = (double)((renderFrameEnd - renderFrameStart) * 1000 / SDL_GetPerformanceFrequency());
-
-        snprintf(buf, 64, "SDVX Clone - render frame time: %.2fms", renderFrameTime);
-        SDL_SetWindowTitle(gameWindow, buf);
-        renderFrameStart = renderFrameEnd;
+        if (renderFrameTime >= 1000.0) {
+            snprintf(buf, 64, "SDVX Clone - frames per second: %.2f", ((float)frameCount * 1000.0 / renderFrameTime));
+            SDL_SetWindowTitle(gameWindow, buf);
+            renderFrameStart = renderFrameEnd;
+            frameCount = 0;
+        }
     }
 }
 
 void Game::quit() {
+    if (Renderer::isInitialized()) {
+        Renderer::quit();
+    }
     if (glContext != NULL) {
         SDL_GL_DeleteContext(glContext);
     }

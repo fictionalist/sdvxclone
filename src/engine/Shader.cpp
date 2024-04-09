@@ -1,15 +1,19 @@
 #include "Shader.hpp"
 
 #include <string>
+#include <map>
 #include <sstream>
 #include <fstream>
 
 #include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Logging.hpp"
 
 Shader::Shader() {
     programID = glCreateProgram();
+    locationMap = std::unordered_map<std::string, unsigned int>();
     shaderCount = 0;
 }
 
@@ -63,6 +67,31 @@ bool Shader::link() {
     }
     shaderCount = 0;
     return true;
+}
+
+unsigned int Shader::getLocationAddr(std::string location) {
+    bool foundLocation = false;
+    for (const auto loc : locationMap) {
+        if (loc.first.compare(location.c_str()) == 0) {
+            foundLocation = true;
+            return loc.second;
+        }
+    }
+    unsigned int locationAddr = glGetUniformLocation(programID, location.c_str());
+    if (locationAddr == -1) {
+        Logging::error("Shader program %d - no location corresponds to \"%s\"", programID, location.c_str());
+        return locationAddr;
+    }
+    
+    locationMap.insert(std::make_pair(location, locationAddr));
+    return locationAddr;
+}
+
+void Shader::setMat4(std::string location, glm::mat4 m) {
+    unsigned int locationAddr = getLocationAddr(location);
+    if (locationAddr != -1) {
+        glUniformMatrix4fv(locationAddr, 1, GL_FALSE, glm::value_ptr(m));
+    } 
 }
 
 void Shader::use() {

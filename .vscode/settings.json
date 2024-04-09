@@ -109,5 +109,12 @@
     "streambuf": "cpp",
     "cinttypes": "cpp",
     "typeinfo": "cpp"
-  }
+  },
+  "makefile.launchConfigurations": [
+    {
+      "cwd": "d:\\c-projects\\sdvxclone\\sdvxclone\\bin",
+      "binaryPath": "d:\\c-projects\\sdvxclone\\sdvxclone\\bin\\sdvxclone",
+      "binaryArgs": []
+    }
+  ]
 }

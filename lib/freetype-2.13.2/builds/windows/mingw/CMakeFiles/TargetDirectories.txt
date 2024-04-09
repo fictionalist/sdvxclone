@@ -1,0 +1,9 @@
+D:/c-projects/sdvxclone/sdvxclone/lib/freetype-2.13.2/builds/windows/mingw/CMakeFiles/freetype.dir
+D:/c-projects/sdvxclone/sdvxclone/lib/freetype-2.13.2/builds/windows/mingw/CMakeFiles/package.dir
+D:/c-projects/sdvxclone/sdvxclone/lib/freetype-2.13.2/builds/windows/mingw/CMakeFiles/package_source.dir
+D:/c-projects/sdvxclone/sdvxclone/lib/freetype-2.13.2/builds/windows/mingw/CMakeFiles/edit_cache.dir
+D:/c-projects/sdvxclone/sdvxclone/lib/freetype-2.13.2/builds/windows/mingw/CMakeFiles/rebuild_cache.dir
+D:/c-projects/sdvxclone/sdvxclone/lib/freetype-2.13.2/builds/windows/mingw/CMakeFiles/list_install_components.dir
+D:/c-projects/sdvxclone/sdvxclone/lib/freetype-2.13.2/builds/windows/mingw/CMakeFiles/install.dir
+D:/c-projects/sdvxclone/sdvxclone/lib/freetype-2.13.2/builds/windows/mingw/CMakeFiles/install/local.dir
+D:/c-projects/sdvxclone/sdvxclone/lib/freetype-2.13.2/builds/windows/mingw/CMakeFiles/install/strip.dir
