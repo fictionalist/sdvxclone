@@ -3,6 +3,7 @@
 #include "Renderer.hpp"
 #include "Renderable.hpp"
 #include "UIElement.hpp"
+#include "Input.hpp"
 
 enum class SceneList;
 

@@ -88,7 +88,7 @@ unsigned int Shader::getLocationAddr(std::string location) {
     }
     unsigned int locationAddr = glGetUniformLocation(programID, location.c_str());
     if (locationAddr == -1) {
-        Logging::error("Shader program %d - no location corresponds to \"%s\"", programID, location.c_str());
+        //Logging::error("Shader program %d - no location corresponds to \"%s\"", programID, location.c_str());
         return locationAddr;
     }
     
@@ -108,6 +108,13 @@ void Shader::setMat4(std::string location, glm::mat4 m) {
     if (locationAddr != -1) {
         glUniformMatrix4fv(locationAddr, 1, GL_FALSE, glm::value_ptr(m));
     } 
+}
+
+void Shader::setVec4(std::string location, glm::vec4 v) {
+    unsigned int locationAddr = getLocationAddr(location);
+    if (locationAddr != -1) {
+        glUniform4fv(locationAddr, 1, glm::value_ptr(v));
+    }
 }
 
 void Shader::use() {

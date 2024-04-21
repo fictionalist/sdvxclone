@@ -2,5 +2,10 @@
     "graphics": {
         "resolution": "1280x720",
         "windowMode": "windowed"
+    },
+    "gameplay": {
+        "drawOffset": 0,
+        "soundOffset": 0,
+        "laneSpeed": 1.00
     }
 }

@@ -32,19 +32,21 @@ INCDIRS := $(shell $(FIND) $(SRC_DIR) -type d) \
 		   $(LIB_DIR)/glm-1.0.1-light/include \
 		   $(LIB_DIR)/freetype-2.13.2/include \
 		   $(LIB_DIR)/stb_image \
-		   $(LIB_DIR)/nlohmann-json-3.11.3
+		   $(LIB_DIR)/json-3.11.3 \
+		   $(LIB_DIR)/lua-5.4.6/src
 
 INCFLAGS := $(addprefix -I,$(INCDIRS))
 
 LINKDIRS := $(LIB_DIR)/glew-2.2.0/lib/Release/x64 \
 			$(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/lib \
-			$(LIB_DIR)/freetype-2.13.2/builds/windows/mingw
+			$(LIB_DIR)/freetype-2.13.2/builds/windows/mingw \
+			$(LIB_DIR)/lua-5.4.6/lib
 
-LINKLIBS := glew32 libSDL2 opengl32 freetype
+LINKLIBS := glew32 libSDL2 opengl32 freetype lua
 LINKFLAGS := $(addprefix -L,$(LINKDIRS)) $(addprefix -l,$(LINKLIBS))
 
-CFLAGS := -std=c17 -O1 -g3
-CXXFLAGS := -std=c++23 -O1 -g3
+CFLAGS := -std=c23 -O2 -g3
+CXXFLAGS := -std=c++23 -O2 -g3
 CPPFLAGS := $(INCFLAGS) -MMD -MP
 LDFLAGS := -Wl,-Map="$(OUT_DIR)/$(PROGRAM_NAME).map" $(LINKFLAGS)
 EXTRAFLAGS := -fdiagnostics-color=always

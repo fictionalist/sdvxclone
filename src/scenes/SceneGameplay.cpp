@@ -90,6 +90,8 @@ void buildTrack() {
     Camera::lookAt(glm::vec3(6.0f, 0.0f, (trackWidth / 4.0f)));
 }
 
+UIElement* buttonADisplay, *buttonBDisplay, *buttonCDisplay, *buttonDDisplay, *buttonFXLDisplay, *buttonFXRDisplay, *buttonStartDisplay;
+
 void buildInterface() {
     Texture* lifeMeterTexture = new Texture();
     glm::ivec2 lifeMeterSize = lifeMeterTexture->loadImage("./data/textures/life_meter.png");
@@ -106,6 +108,48 @@ void buildInterface() {
     score->setTexture(scoreTexture);
     score->setPosition(glm::ivec2(1280 - scoreSize.x - 100, 80));
     Renderer::addRenderable(score);
+
+    UIElement* controllerDisplayBackground = new UIElement();
+    controllerDisplayBackground->setSize(glm::ivec2(150, 80));
+    controllerDisplayBackground->setPosition(glm::ivec2(40, 40));
+    controllerDisplayBackground->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
+    Renderer::addRenderable(controllerDisplayBackground);
+
+    buttonADisplay = new UIElement();
+    buttonADisplay->setSize(glm::ivec2(20, 20));
+    buttonADisplay->setPosition(glm::ivec2(60, 68));
+    buttonADisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    Renderer::addRenderable(buttonADisplay);
+
+    buttonBDisplay = new UIElement();
+    buttonBDisplay->setSize(glm::ivec2(20, 20));
+    buttonBDisplay->setPosition(glm::ivec2(90, 68));
+    buttonBDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    Renderer::addRenderable(buttonBDisplay);
+
+    buttonCDisplay = new UIElement();
+    buttonCDisplay->setSize(glm::ivec2(20, 20));
+    buttonCDisplay->setPosition(glm::ivec2(120, 68));
+    buttonCDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    Renderer::addRenderable(buttonCDisplay);
+
+    buttonDDisplay = new UIElement();
+    buttonDDisplay->setSize(glm::ivec2(20, 20));
+    buttonDDisplay->setPosition(glm::ivec2(150, 68));
+    buttonDDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    Renderer::addRenderable(buttonDDisplay);
+
+    buttonFXLDisplay = new UIElement();
+    buttonFXLDisplay->setSize(glm::ivec2(20, 10));
+    buttonFXLDisplay->setPosition(glm::ivec2(75, 94));
+    buttonFXLDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    Renderer::addRenderable(buttonFXLDisplay);
+
+    buttonFXRDisplay = new UIElement();
+    buttonFXRDisplay->setSize(glm::ivec2(20, 10));
+    buttonFXRDisplay->setPosition(glm::ivec2(135, 94));
+    buttonFXRDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    Renderer::addRenderable(buttonFXRDisplay);
 }
 
 SceneGameplay::SceneGameplay() {
@@ -114,4 +158,35 @@ SceneGameplay::SceneGameplay() {
 }
 
 void SceneGameplay::update(unsigned int tickDelta) {
+    InputState state = Input::getState();
+    if (state.bits.buttonA) {
+        buttonADisplay->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
+    } else {
+        buttonADisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    }
+    if (state.bits.buttonB) {
+        buttonBDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
+    } else {
+        buttonBDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    }
+    if (state.bits.buttonC) {
+        buttonCDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
+    } else {
+        buttonCDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    }
+    if (state.bits.buttonD) {
+        buttonDDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
+    } else {
+        buttonDDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    }
+    if (state.bits.buttonFXL) {
+        buttonFXLDisplay->setColor(glm::vec4(0.8f, 0.0f, 0.0f, 1.0f));
+    } else {
+        buttonFXLDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    }
+    if (state.bits.buttonFXR) {
+        buttonFXRDisplay->setColor(glm::vec4(0.8f, 0.0f, 0.0f, 1.0f));
+    } else {
+        buttonFXRDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    }
 }

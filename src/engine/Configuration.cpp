@@ -18,6 +18,9 @@ namespace Configuration {
 bool Configuration::generateDefaultSettings() {
     settings["graphics"]["resolution"] = "1280x720";
     settings["graphics"]["displayMode"] = "windowed";
+    settings["gameplay"]["drawOffset"] = 0;
+    settings["gameplay"]["soundOffset"] = 0;
+    settings["gameplay"]["laneSpeed"] = 1.00;
 
     if (!save()) {
         Logging::error("Failed to create default settings file!");

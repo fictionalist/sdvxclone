@@ -12,6 +12,7 @@ UIElement::UIElement() {
     position = glm::ivec2(0);
     origin = glm::ivec2(0);
     size = glm::ivec2(0);
+    color = glm::vec4(1.0);
     rotation = 0.0f;
 
     setShader(Renderer::interfaceShader);
@@ -55,6 +56,10 @@ void UIElement::setPosition(glm::ivec2 p) {
     resetTransform();
 }
 
+void UIElement::setColor(glm::vec4 c) {
+    color = c;
+}
+
 void UIElement::draw() {
     if (VBO == 0) {
         return;
@@ -62,6 +67,7 @@ void UIElement::draw() {
     shader->use();
     shader->setInt("uModelID", ID);
     shader->setMat4("uModel", transformMatrix);
+    shader->setVec4("uColor", color);
     if (texture != nullptr) {
         texture->bindTexture(shader);
     } else {

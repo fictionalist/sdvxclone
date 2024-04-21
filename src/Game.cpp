@@ -8,7 +8,9 @@
 #include <GL/glew.h>
 
 #include "engine/Logging.hpp"
+#include "engine/LuaScript.hpp"
 #include "engine/Configuration.hpp"
+#include "engine/Input.hpp"
 #include "engine/Renderer.hpp"
 #include "engine/Scene.hpp"
 
@@ -30,11 +32,17 @@ bool Game::init() {
     if (!Configuration::init()) {
         return false;
     }
+
+    if (!LuaScript::init()) {
+        return false;
+    }
     
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         printf("Failed to initialize SDL: %s\n", SDL_GetError());
         return false;
     }
+
+    Input::init();
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
@@ -70,11 +78,13 @@ bool Game::init() {
 void Game::handleEvent(SDL_Event* event) {
     switch (event->type) {
         case SDL_KEYDOWN:
+        case SDL_KEYUP:
             switch (event->key.keysym.scancode) {
                 case SDL_SCANCODE_ESCAPE:
                     running = false;
                     break;
                 default:
+                    Input::handleKeybind(event);
                     break;
             }
             break;

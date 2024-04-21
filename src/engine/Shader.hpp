@@ -21,5 +21,6 @@ public:
     void use();
     
     void setInt(std::string location, int);
+    void setVec4(std::string location, glm::vec4);
     void setMat4(std::string location, glm::mat4);
 };
