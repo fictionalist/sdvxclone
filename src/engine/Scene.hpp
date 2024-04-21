@@ -1,9 +1,19 @@
 #pragma once
 
+#include "Renderer.hpp"
+#include "Renderable.hpp"
+#include "UIElement.hpp"
+
+enum class SceneList;
+
 class Scene {
-private:
-    Scene() = delete;
 public:
-    virtual bool init();
-    virtual void update();
+    static Scene* currentScene;
+    static void setScene(SceneList);
+
+    Scene();
+    ~Scene();
+    virtual void update(unsigned int deltaTime);
 };
+
+#include "../scenes/SceneList.hpp"

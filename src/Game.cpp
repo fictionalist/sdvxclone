@@ -2,10 +2,13 @@
 
 #include <cstdio>
 
+#include <windows.h>
+
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
 
 #include "engine/Logging.hpp"
+#include "engine/Configuration.hpp"
 #include "engine/Renderer.hpp"
 #include "engine/Scene.hpp"
 
@@ -13,8 +16,6 @@ namespace Game {
     static SDL_Window* gameWindow = nullptr;
     static SDL_GLContext glContext = nullptr;
     static bool running = false;
-
-    static Scene* currentScene = nullptr;
 
     void handleEvent(SDL_Event*);
 }
@@ -25,6 +26,10 @@ bool Game::init() {
     if (!Logging::init()) {
         return false;
     }
+
+    if (!Configuration::init()) {
+        return false;
+    }
     
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         printf("Failed to initialize SDL: %s\n", SDL_GetError());
@@ -33,7 +38,7 @@ bool Game::init() {
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 4);
 
     gameWindow = SDL_CreateWindow("SDVX Clone - frames per second: 0.00",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -54,6 +59,8 @@ bool Game::init() {
         Game::quit();
         return false;
     }
+
+    Scene::setScene(SceneList::Gameplay);
     
     running = true;
 
@@ -62,6 +69,15 @@ bool Game::init() {
 
 void Game::handleEvent(SDL_Event* event) {
     switch (event->type) {
+        case SDL_KEYDOWN:
+            switch (event->key.keysym.scancode) {
+                case SDL_SCANCODE_ESCAPE:
+                    running = false;
+                    break;
+                default:
+                    break;
+            }
+            break;
         case SDL_QUIT:
             running = false;
             break;
@@ -79,19 +95,28 @@ void Game::loop() {
     unsigned int frameCount = 0;
     char buf[128];
 
+    unsigned long long lastTick, currentTick;
+    lastTick = currentTick = SDL_GetPerformanceCounter();
+    unsigned long long runTime = 0;
     while (running) {
         while (SDL_PollEvent(&event)) {
             handleEvent(&event);
         }
+        currentTick = SDL_GetPerformanceCounter();
+        unsigned long long tickDelta = ((currentTick - lastTick) * 1000) / SDL_GetPerformanceFrequency();
+        runTime += tickDelta;
+        Scene::currentScene->update(tickDelta);
+        Renderer::update((((currentTick - lastTick) * 1000) / SDL_GetPerformanceFrequency()));
+        lastTick = currentTick;
         Renderer::draw();
         SDL_GL_SwapWindow(gameWindow);
         frameCount++;
         renderFrameEnd = SDL_GetPerformanceCounter();
         renderFrameTime = (double)((renderFrameEnd - renderFrameStart) * 1000 / SDL_GetPerformanceFrequency());
         if (renderFrameTime >= 1000.0) {
-            snprintf(buf, 64, "SDVX Clone - frames per second: %.2f", ((float)frameCount * 1000.0 / renderFrameTime));
+            snprintf(buf, 64, "SDVX Clone - frames per second: %.2f - %d - %llu", ((float)frameCount * 1000.0 / renderFrameTime), tickDelta, runTime);
             SDL_SetWindowTitle(gameWindow, buf);
-            renderFrameStart = renderFrameEnd;
+            renderFrameStart = renderFrameEnd - (renderFrameTime - 1000.0);
             frameCount = 0;
         }
     }

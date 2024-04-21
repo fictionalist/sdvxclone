@@ -1,8 +1,14 @@
-#version 400 core
+#version 440 core
 layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec2 aTexCoord;
 
-uniform mat4 uProjection = mat4(1.0);
+out vec2 UV;
+
+uniform mat4 uProjection;
+uniform mat4 uModel = mat4(1.0);
+uniform mat4 uView = mat4(1.0);
 
 void main() {
-    gl_Position = uProjection * vec4(aPos, 1.0);
+    gl_Position = uProjection * uModel * uView * vec4(aPos, 1.0);
+    UV = aTexCoord;
 }

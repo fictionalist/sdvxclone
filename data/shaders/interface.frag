@@ -1,14 +1,12 @@
 #version 440 core
 
 in vec2 UV;
+out vec4 fragColor;
 
 uniform int uHasTexture = 0;
 uniform sampler2D uTexture;
-
-uniform int uTime = 0;
+uniform int uTime;
 uniform int uModelID = 0;
-
-out vec4 fragColor;
 
 void main() {
     int phase = uTime + (370 * uModelID);

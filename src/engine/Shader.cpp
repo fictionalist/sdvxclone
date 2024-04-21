@@ -22,18 +22,25 @@ bool Shader::loadShader(std::string path, unsigned int shaderType) {
         Logging::error("Tried to attach shader \"%s\", but shader program has too many shaders already.", path.c_str());
         return false;
     }
-    std::ifstream i = std::ifstream(path.c_str());
+    std::ifstream i(path.c_str(), std::ifstream::binary);
     if (!i.good()) {  
         Logging::error("Failed to open shader \"%s\"", path.c_str());      
         return false;
     }
 
     std::stringstream ss;
-    ss << i.rdbuf();
-    const char* shaderSource = ss.str().c_str();
+
+    while (i.good()) {
+        std::string buf;
+        std::getline(i, buf);
+        ss << buf << "\n";
+    }
+
+    std::string shaderSourceStr = ss.str();
+    const char* shaderSource = shaderSourceStr.c_str();
 
     unsigned int shaderID = glCreateShader(shaderType);
-    glShaderSource(shaderID, 1, &shaderSource, NULL);
+    glShaderSource(shaderID, 1, (const char**)&shaderSource, NULL);
     glCompileShader(shaderID);
 
     int success;
@@ -42,6 +49,8 @@ bool Shader::loadShader(std::string path, unsigned int shaderType) {
     if (!success) {
         glGetShaderInfoLog(shaderID, 512, NULL, infoLog);
         Logging::error("Shader \"%s\" compilation error: %s", path.c_str(), infoLog);
+        Logging::error("Shader source:\n%s", shaderSource);
+        glDeleteShader(shaderID);
         return false;
     }
 
@@ -85,6 +94,13 @@ unsigned int Shader::getLocationAddr(std::string location) {
     
     locationMap.insert(std::make_pair(location, locationAddr));
     return locationAddr;
+}
+
+void Shader::setInt(std::string location, int i) {
+    unsigned int locationAddr = getLocationAddr(location);
+    if (locationAddr != -1) {
+        glUniform1i(locationAddr, i);
+    } 
 }
 
 void Shader::setMat4(std::string location, glm::mat4 m) {

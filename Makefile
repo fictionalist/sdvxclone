@@ -30,7 +30,9 @@ INCDIRS := $(shell $(FIND) $(SRC_DIR) -type d) \
 		   $(LIB_DIR)/glew-2.2.0/include \
 		   $(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/include \
 		   $(LIB_DIR)/glm-1.0.1-light/include \
-		   $(LIB_DIR)/freetype-2.13.2/include
+		   $(LIB_DIR)/freetype-2.13.2/include \
+		   $(LIB_DIR)/stb_image \
+		   $(LIB_DIR)/nlohmann-json-3.11.3
 
 INCFLAGS := $(addprefix -I,$(INCDIRS))
 
@@ -41,8 +43,8 @@ LINKDIRS := $(LIB_DIR)/glew-2.2.0/lib/Release/x64 \
 LINKLIBS := glew32 libSDL2 opengl32 freetype
 LINKFLAGS := $(addprefix -L,$(LINKDIRS)) $(addprefix -l,$(LINKLIBS))
 
-CFLAGS := -std=c17 -O2 -g3
-CXXFLAGS := -std=c++23 -O2 -g3
+CFLAGS := -std=c17 -O1 -g3
+CXXFLAGS := -std=c++23 -O1 -g3
 CPPFLAGS := $(INCFLAGS) -MMD -MP
 LDFLAGS := -Wl,-Map="$(OUT_DIR)/$(PROGRAM_NAME).map" $(LINKFLAGS)
 EXTRAFLAGS := -fdiagnostics-color=always

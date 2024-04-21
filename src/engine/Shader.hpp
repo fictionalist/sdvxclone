@@ -20,5 +20,6 @@ public:
     bool link();
     void use();
     
+    void setInt(std::string location, int);
     void setMat4(std::string location, glm::mat4);
 };
