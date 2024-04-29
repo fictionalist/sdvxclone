@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "C:/msys64/ucrt64/bin",
-                "C:/msys64/ucrt64/include"
+                "C:/msys64/ucrt64/include",
+                "${workspaceFolder}/lib/openal-1.1/include"
             ],
             "cStandard": "c17",
             "cppStandard": "c++20",

@@ -9,6 +9,6 @@ uniform mat4 uModel = mat4(1.0);
 uniform mat4 uView = mat4(1.0);
 
 void main() {
-    gl_Position = uProjection * uModel * uView * vec4(aPos, 1.0);
+    gl_Position = uProjection * uView * uModel * vec4(aPos, 1.0);
     UV = aTexCoord;
 }
