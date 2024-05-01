@@ -11,7 +11,8 @@
 
 #include "Logging.hpp"
 
-Shader::Shader() {
+Shader::Shader(std::string name) {
+    shaderName = name;
     programID = glCreateProgram();
     locationMap = std::unordered_map<std::string, unsigned int>();
     shaderCount = 0;
@@ -19,12 +20,12 @@ Shader::Shader() {
 
 bool Shader::loadShader(std::string path, unsigned int shaderType) {
     if (shaderCount >= 4) {
-        Logging::error("Tried to attach shader \"%s\", but shader program has too many shaders already.", path.c_str());
+        Logging::error("Shader \"%s\": Tried to attach shader file \"%s\", but shader program has too many shaders already.", shaderName.c_str(), path.c_str());
         return false;
     }
     std::ifstream i(path.c_str(), std::ifstream::binary);
     if (!i.good()) {  
-        Logging::error("Failed to open shader \"%s\"", path.c_str());      
+        Logging::error("Shader \"%s\": Failed to open shader file \"%s\"", shaderName.c_str(), path.c_str());      
         return false;
     }
 
@@ -48,7 +49,7 @@ bool Shader::loadShader(std::string path, unsigned int shaderType) {
     glGetShaderiv(shaderID, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(shaderID, 512, NULL, infoLog);
-        Logging::error("Shader \"%s\" compilation error: %s", path.c_str(), infoLog);
+        Logging::error("Shader \"%s\": Shader file \"%s\" compilation error: %s", shaderName.c_str(), path.c_str(), infoLog);
         Logging::error("Shader source:\n%s", shaderSource);
         glDeleteShader(shaderID);
         return false;
@@ -68,7 +69,7 @@ bool Shader::link() {
     glGetProgramiv(programID, GL_LINK_STATUS, &success);
     if (!success) {
         glGetProgramInfoLog(programID, 512, 0, infoLog);
-        Logging::error("Shader program %d linking error: %s", programID, infoLog);
+        Logging::error("Shader \"%s\": Shader program %d linking error: %s", shaderName.c_str(), programID, infoLog);
     }
 
     for (unsigned int i = 0; i < shaderCount; i++) {
@@ -88,7 +89,7 @@ unsigned int Shader::getLocationAddr(std::string location) {
     }
     unsigned int locationAddr = glGetUniformLocation(programID, location.c_str());
     if (locationAddr == -1) {
-        //Logging::error("Shader program %d - no location corresponds to \"%s\"", programID, location.c_str());
+        //Logging::error("Shader \"%s\" - no location corresponds to \"%s\"", shaderName.c_str(), programID, location.c_str());
         return locationAddr;
     }
     

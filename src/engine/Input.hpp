@@ -22,5 +22,9 @@ enum class InputEnum {
 namespace Input {
     bool init();
     void handleKeybind(SDL_Event*);
+    void handleGamepad(SDL_Event*);
     InputState getState();
+
+    void addGamepad(SDL_Event*);
+    void removeGamepad(SDL_Event*);
 }

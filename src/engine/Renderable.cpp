@@ -11,10 +11,16 @@
 unsigned int Renderable::modelCount = 0;
 
 Renderable::Renderable() {
+    init();
+}
+
+void Renderable::init() {
     vertices = std::vector<Vertex>();
     shader = nullptr;
     texture = nullptr;
     VBO = VAO = 0;
+    visible = true;
+    color = glm::vec4(1.0f);
 }
 
 void Renderable::addVertex(Vertex v) {
@@ -23,6 +29,10 @@ void Renderable::addVertex(Vertex v) {
 
 void Renderable::setShader(Shader* s) {
     shader = s;
+}
+
+void Renderable::setColor(glm::vec4 c) {
+    color = c;
 }
 
 void Renderable::buildModel() {
@@ -49,13 +59,17 @@ void Renderable::setTexture(Texture* t) {
     texture = t;
 }
 
+void Renderable::setVisibility(bool v) {
+    visible = v;
+}
+
 void Renderable::draw() {
-    if (VBO == 0) {
-        return;
-    }
+    if (VBO == 0) return;
+    if (!visible) return;
     shader->use();
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    shader->setVec4("uColor", color);
     if (texture != nullptr) {
         texture->bindTexture(shader);
     } else {

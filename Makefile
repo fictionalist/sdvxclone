@@ -33,16 +33,18 @@ INCDIRS := $(shell $(FIND) $(SRC_DIR) -type d) \
 		   $(LIB_DIR)/freetype-2.13.2/include \
 		   $(LIB_DIR)/stb_image \
 		   $(LIB_DIR)/json-3.11.3 \
-		   $(LIB_DIR)/lua-5.4.6/src
+		   $(LIB_DIR)/lua-5.4.6/src \
+		   $(LIB_DIR)/openal-1.1/include
 
 INCFLAGS := $(addprefix -I,$(INCDIRS))
 
 LINKDIRS := $(LIB_DIR)/glew-2.2.0/lib/Release/x64 \
 			$(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/lib \
 			$(LIB_DIR)/freetype-2.13.2/builds/windows/mingw \
-			$(LIB_DIR)/lua-5.4.6/lib
+			$(LIB_DIR)/lua-5.4.6/lib \
+			$(LIB_DIR)/openal-1.1/libs/Win64
 
-LINKLIBS := glew32 libSDL2 opengl32 freetype lua
+LINKLIBS := glew32 libSDL2 opengl32 freetype lua OpenAL32
 LINKFLAGS := $(addprefix -L,$(LINKDIRS)) $(addprefix -l,$(LINKLIBS))
 
 CFLAGS := -std=c23 -O2 -g3

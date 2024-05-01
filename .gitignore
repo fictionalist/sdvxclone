@@ -34,3 +34,26 @@ log.txt
 *.exe
 *.out
 *.app
+
+log.txt
+
+# Additional library content
+lib/openal-1.1/samples/*
+lib/glew-2.2.0/doc/*
+lib/freetype-2.13.2/devel/*
+lib/freetype-2.13.2/src/*
+lib/freetype-2.13.2/subprojects/*
+lib/freetype-2.13.2/tests/*
+lib/freetype-2.13.2/.clang-format
+lib/freetype-2.13.2/autogen.sh
+lib/freetype-2.13.2/ChangeLog
+lib/freetype-2.13.2/CMakeLists.txt
+lib/freetype-2.13.2/configure
+lib/freetype-2.13.2/Makefile
+lib/freetype-2.13.2/meson*
+lib/freetype-2.13.2/modules.cfg
+lib/freetype-2.13.2/README*
+lib/freetype-2.13.2/vms_make.com
+lib/SDL2-2.30.2/cmake/*
+lib/SDL2-2.30.2/i686-w64-mingw32/*
+lib/SDL2-2.30.2/test/*

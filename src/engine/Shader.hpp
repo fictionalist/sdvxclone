@@ -7,6 +7,7 @@
 
 class Shader {
 private:
+    std::string shaderName;
     unsigned int programID;
     unsigned int attachedShaders[4];
     unsigned int shaderCount;
@@ -15,7 +16,7 @@ private:
     unsigned int getLocationAddr(std::string locationName);
 
 public:
-    Shader();
+    Shader(std::string name);
     bool loadShader(std::string path, unsigned int shaderType);
     bool link();
     void use();

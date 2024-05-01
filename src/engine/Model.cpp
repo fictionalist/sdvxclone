@@ -8,9 +8,10 @@
 #include "Texture.hpp"
 
 Model::Model() {
+    init();
     position = glm::vec3(0.0f);
     rotation = glm::vec3(0.0f);
-    setShader(Renderer::baseShader);
+    setShader(Renderer::defaultShader);
     resetTransform();
 }
 
@@ -33,14 +34,18 @@ void Model::setRotation(glm::vec3 r) {
     resetTransform();
 }
 
+glm::vec3 Model::getPosition() {
+    return position;
+}
+
 void Model::draw() {
-    if (VBO == 0) {
-        return;
-    }
+    if (VBO == 0) return;
+    if (!visible) return;
 
     shader->use();
     shader->setInt("uModelID", ID);
     shader->setMat4("uModel", transformMatrix);
+    shader->setVec4("uColor", color);
     
     if (texture != nullptr) {
         texture->bindTexture(shader);

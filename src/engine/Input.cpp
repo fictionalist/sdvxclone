@@ -2,13 +2,19 @@
 
 #include <cstdio>
 #include <map>
+#include <vector>
 
 #include <SDL2/SDL.h>
 
+#include "Logging.hpp"
+
 namespace Input {
     std::map<SDL_KeyCode, InputEnum> keybinds;
+    std::map<unsigned int, InputEnum> padbinds;
 
     std::map<InputEnum, bool> buttonState;
+
+    std::vector<SDL_Joystick*> gamepads;
 }
 
 bool Input::init() {
@@ -20,6 +26,14 @@ bool Input::init() {
     keybinds.insert(std::make_pair(SDL_KeyCode::SDLK_m, InputEnum::BUTTON_FX_R));
     keybinds.insert(std::make_pair(SDL_KeyCode::SDLK_RETURN, InputEnum::BUTTON_START));
 
+    padbinds.insert(std::make_pair(0, InputEnum::BUTTON_A));
+    padbinds.insert(std::make_pair(1, InputEnum::BUTTON_B));
+    padbinds.insert(std::make_pair(2, InputEnum::BUTTON_C));
+    padbinds.insert(std::make_pair(3, InputEnum::BUTTON_D));
+    padbinds.insert(std::make_pair(4, InputEnum::BUTTON_FX_L));
+    padbinds.insert(std::make_pair(5, InputEnum::BUTTON_FX_R));
+    padbinds.insert(std::make_pair(6, InputEnum::BUTTON_START));
+
     buttonState.insert(std::make_pair(InputEnum::BUTTON_A, false));
     buttonState.insert(std::make_pair(InputEnum::BUTTON_B, false));
     buttonState.insert(std::make_pair(InputEnum::BUTTON_C, false));
@@ -27,6 +41,12 @@ bool Input::init() {
     buttonState.insert(std::make_pair(InputEnum::BUTTON_FX_L, false));
     buttonState.insert(std::make_pair(InputEnum::BUTTON_FX_R, false));
     buttonState.insert(std::make_pair(InputEnum::BUTTON_START, false));
+
+    unsigned int joysticks = SDL_NumJoysticks();
+    Logging::info("Number of gamepads detected: %d", joysticks);
+    if (joysticks >= 1) {
+        gamepads.push_back(SDL_JoystickOpen(0));
+    }
     return true;
 }
 
@@ -43,6 +63,26 @@ void Input::handleKeybind(SDL_Event* event) {
             }
         }
     }
+}
+
+void Input::handleGamepad(SDL_Event* event) {
+    for (auto& bind : padbinds) {
+        if (event->jbutton.button == bind.first) {
+            if (event->jbutton.state == SDL_PRESSED) {
+                buttonState[bind.second] = true;
+            } else {
+                buttonState[bind.second] = false;
+            }
+        }
+    }
+}
+
+void Input::addGamepad(SDL_Event*) {
+
+}
+
+void Input::removeGamepad(SDL_Event*) {
+
 }
 
 InputState Input::getState() {

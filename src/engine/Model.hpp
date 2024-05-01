@@ -15,5 +15,6 @@ public:
     Model();
     void draw();
     void setPosition(glm::vec3);
+    glm::vec3 getPosition();
     void setRotation(glm::vec3 axis);
 };

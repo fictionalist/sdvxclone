@@ -7,16 +7,19 @@
 #include "Renderable.hpp"
 
 namespace Renderer {
-    bool init();
+    bool init(glm::ivec2 initialResolution);
     void draw();
     void update(unsigned long long delta);
     void quit();
 
     bool isInitialized();
     void addRenderable(Renderable*);
+    void addInterface(Renderable*);
+    
+    void resizeWindow(glm::ivec2);
     void resetFramebuffer();
 
-    extern Shader* baseShader;
+    extern Shader* defaultShader;
     extern Shader* interfaceShader;
     extern Shader* atlasShader;
     
@@ -24,4 +27,6 @@ namespace Renderer {
 
     extern glm::mat4 interfaceProjection;
     extern glm::mat4 gameProjection;
+
+    glm::ivec2 getCurrentResolution();
 }

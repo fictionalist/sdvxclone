@@ -11,6 +11,7 @@ bool LuaScript::init() {
     if (state == nullptr) {
         return false;
     }
+
     return true;
 }
 

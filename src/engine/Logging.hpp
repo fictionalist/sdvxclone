@@ -5,5 +5,6 @@
 
 namespace Logging {
     bool init();
+    void info(std::string fmt, ...);
     void error(std::string fmt, ...);
 }

@@ -16,15 +16,18 @@ class Renderable {
 protected:
     static unsigned int modelCount;
     unsigned int ID;
-    //Renderable() = delete;
 
     std::vector<Vertex> vertices;
 
     Shader* shader;
     unsigned int VBO;
     unsigned int VAO;
+    bool visible;
+    glm::vec4 color;
 
     Texture* texture;
+
+    void init();
 
 public:
     Renderable();
@@ -33,4 +36,6 @@ public:
     void addVertex(Vertex);
     void setShader(Shader*);
     void setTexture(Texture*);
+    void setColor(glm::vec4);
+    void setVisibility(bool);
 };

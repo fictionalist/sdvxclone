@@ -10,6 +10,7 @@
 
 namespace Logging {
     std::ofstream logFile;
+    void log(std::string level, std::string fmt, va_list args);
 }
 
 bool Logging::init() {
@@ -31,17 +32,28 @@ std::string getDateTimeString() {
     return ss.str();
 }
 
-void Logging::error(std::string text, ...) {
+void Logging::log(std::string level, std::string fmt, std::va_list args) {
     char formatBuf[512];
 
-    std::va_list args;
-    va_start(args, text);
-    vsprintf(formatBuf, text.c_str(), args);
-    va_end(args);
+    vsprintf(formatBuf, fmt.c_str(), args);
 
     std::stringstream ss;
-    ss << getDateTimeString() << " [E]: " << formatBuf << "\n";
+    ss << getDateTimeString() << " " << level.c_str() << " " << formatBuf << "\n";
     std::string buf = ss.str();
     printf(buf.c_str());
     logFile << buf.c_str();
+}
+
+void Logging::info(std::string fmt, ...) {
+    std::va_list args;
+    va_start(args, fmt);
+    log("[I]", fmt, args);
+    va_end(args);
+}
+
+void Logging::error(std::string fmt, ...) {
+    std::va_list args;
+    va_start(args, fmt);
+    log("[E]", fmt, args);
+    va_end(args);
 }

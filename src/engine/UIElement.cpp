@@ -9,10 +9,10 @@
 static float order = 0.0f;
 
 UIElement::UIElement() {
+    init();
     position = glm::ivec2(0);
     origin = glm::ivec2(0);
     size = glm::ivec2(0);
-    color = glm::vec4(1.0);
     rotation = 0.0f;
 
     setShader(Renderer::interfaceShader);
@@ -40,13 +40,14 @@ void UIElement::setOrigin(glm::ivec2 o) {
 void UIElement::setSize(glm::ivec2 s) {
     size = s;
     vertices.clear();
-    
-    vertices.push_back({{(float)size.x,       0.0f, order}, {1.0f, 0.0f}});
-    vertices.push_back({{      0.0f,       0.0f, order}, {0.0f, 0.0f}});
-    vertices.push_back({{      0.0f, (float)size.y, order}, {0.0f, 1.0f}});
-    vertices.push_back({{(float)size.x,       0.0f, order}, {1.0f, 0.0f}});
-    vertices.push_back({{      0.0f, (float)size.y, order}, {0.0f, 1.0f}});
+
+    vertices.push_back({{         0.0f,          0.0f, order}, {0.0f, 0.0f}});
+    vertices.push_back({{(float)size.x,          0.0f, order}, {1.0f, 0.0f}});
     vertices.push_back({{(float)size.x, (float)size.y, order}, {1.0f, 1.0f}});
+    vertices.push_back({{         0.0f,          0.0f, order}, {0.0f, 0.0f}});
+    vertices.push_back({{(float)size.x, (float)size.y, order}, {1.0f, 1.0f}});
+    vertices.push_back({{         0.0f, (float)size.y, order}, {0.0f, 1.0f}});
+    
     order += 0.0001f;
     buildModel();
 }
@@ -56,14 +57,9 @@ void UIElement::setPosition(glm::ivec2 p) {
     resetTransform();
 }
 
-void UIElement::setColor(glm::vec4 c) {
-    color = c;
-}
-
 void UIElement::draw() {
-    if (VBO == 0) {
-        return;
-    }
+    if (VBO == 0) return;
+    if (!visible) return;
     shader->use();
     shader->setInt("uModelID", ID);
     shader->setMat4("uModel", transformMatrix);

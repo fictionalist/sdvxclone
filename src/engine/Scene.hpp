@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "Renderer.hpp"
 #include "Renderable.hpp"
 #include "UIElement.hpp"

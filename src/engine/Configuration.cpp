@@ -11,7 +11,6 @@
 
 namespace Configuration {
     nlohmann::json settings;
-
     bool generateDefaultSettings();
 }
 
@@ -39,8 +38,6 @@ bool Configuration::init() {
     } else {
         settings = nlohmann::json::parse(settingsFile);
     }
-
-    printf("%s\n", settings["graphics"]["resolution"].get<std::string>().c_str());
 
     return true;
 }
