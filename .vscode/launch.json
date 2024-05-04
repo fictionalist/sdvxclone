@@ -6,7 +6,7 @@
       "type": "cppdbg",
       "request": "launch",
       "args": ["/JMC"],
-      "stopAtEntry": true,
+      "stopAtEntry": false,
       "externalConsole": false,
       "cwd": "${workspaceFolder}/",
       "program": "${workspaceFolder}/bin/sdvxclone.exe",

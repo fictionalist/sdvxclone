@@ -89,12 +89,12 @@ bool Game::init() {
     glewExperimental = GL_TRUE;
     GLenum glError = glewInit();
     if (glError != GLEW_OK) {
-        printf("Failed to initialize GLEW: %s\n", glewGetErrorString(glError));
+        Logging::error("Failed to initialize GLEW: %s\n", glewGetErrorString(glError));
         return false;
     }
 
     if (!Renderer::init(resolution)) {
-        printf("Failed to initialize Renderer.\n");
+        Logging::error("Failed to initialize Renderer.\n");
         Game::quit();
         return false;
     }

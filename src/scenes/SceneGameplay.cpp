@@ -5,53 +5,15 @@
 
 #include "Logging.hpp"
 #include "UIElement.hpp"
+#include "Object.hpp"
 #include "Model.hpp"
 #include "Camera.hpp"
 #include "ChartReader.hpp"
 
-enum class GameplaySequence {
-    FadeIn,
-    Playing,
-    FadeOut
-};
-
-GameplaySequence currentStage = GameplaySequence::FadeIn;
-
-UIElement* fadeIn, fadeOut;
-unsigned int fadeInTimer = 0;
-unsigned int fadeInTimerMax = 1000;
-
-Model* buttonChip, *buttonChipKeysound, *buttonLong, *fxChip, *fxChipKeysound, *fxLong;
-Texture* laneTexture, *measureDivider, *buttonChipTexture, *buttonChipKeysoundTexture, *buttonLongTexture, *fxChipTexture, *fxChipKeysoundTexture, *fxLongTexture;
-
-std::vector<Model*> noteList;
-
-Model* laneHighlightA, *laneHighlightB, *laneHighlightC, *laneHighlightD;
-Model* laneHighlightFXL, *laneHighlightFXR;
-
-UIElement* buttonADisplay, *buttonBDisplay, *buttonCDisplay, *buttonDDisplay, *buttonFXLDisplay, *buttonFXRDisplay, *buttonStartDisplay;
-
-UIElement* lateDisplay, *earlyDisplay;
-UIElement* hitDeltaDisplay;
-Texture* hitDeltaTexture;
-
-UIElement* judgmentDisplayCounter, *judgmentErrorCounter, *judgmentNearCounter, *judgmentCritCounter;
-
-UIElement* scoreDisplay;
-Texture* scoreTexture;
 const float trackWidth = 12.0f;
 const float trackHeight = 60.0f;
-
-const unsigned int lanes = 6;
-const float offset = -(trackWidth / (((float)lanes)));
-const float laneWidth = trackWidth / ((float)lanes);
-const float buttonChipHeight = trackHeight / 40.0f;
-const float buttonChipHeightPos = -3.9f;
-
 const float laneHighlightHeight = -3.995;
 const float measureDividerHeight = -3.9995;
-
-uint64_t runTimer = 0;
 
 const unsigned int errorWindow = 133;
 const unsigned int nearWindow = 67;
@@ -65,7 +27,7 @@ const glm::vec4 colorCritHit = glm::vec4(0.8f, 0.8f, 0.1f, 0.4f);
 const glm::vec4 colorSCritHit = glm::vec4(1.0f, 1.0f, 1.0f, 0.8f);
 const glm::vec4 colorLate = glm::vec4(1.0f, 0.4f, 0.4f, 0.9f);
 const glm::vec4 colorEarly = glm::vec4(0.5f, 0.5f, 1.0f, 0.9f);
-
+/*
 unsigned int score = 0;
 unsigned int previousScore = 0;
 unsigned int exscore = 0;
@@ -74,57 +36,25 @@ float BPM = 220.0f;
 float laneSpeed = 8.00f;
 float basePosOffset = trackHeight * 6.0f;
 float basePosition = (trackHeight / 4.0f) * laneSpeed;
-float scrollSpeed = ((trackHeight / 4.0f) / 4.0f) * (BPM / 60.0f) * laneSpeed;
-
+float scrollSpeed = ((trackHeight / 4.0f) / 4.0f) * (BPM / 60.0f) * laneSpeed;]
 const unsigned int expectedTime = (unsigned int)(BPM / 60.0f) * 1000;
+*/
 
 float progress = 0.0f;
 
-unsigned int laneHighlightATimer = 0;
-unsigned int laneHighlightBTimer = 0;
-unsigned int laneHighlightCTimer = 0;
-unsigned int laneHighlightDTimer = 0;
-unsigned int laneHighlightFXLTimer = 0;
-unsigned int laneHighlightFXRTimer = 0;
+void SceneGameplay::buildTrack() {
+    const uint8_t lanes = 6;
+    const uint8_t buttonLanes = 4;
+    const uint8_t fxLanes = 2;
 
-unsigned int lateIndicatorTimer = 0;
-unsigned int earlyIndicatorTimer = 0;
-unsigned int hitDeltaDisplayTimer = 0;
-int hitDelta = 0;
+    const float laneWidth = trackWidth / ((float)lanes);
+    const float buttonChipHeight = trackHeight / 40.0f;
+    const float buttonChipHeightPos = -3.9f;
 
-unsigned int buttonADebounce = 0;
-unsigned int buttonBDebounce = 0;
-unsigned int buttonCDebounce = 0;
-unsigned int buttonDDebounce = 0;
-unsigned int buttonFXLDebounce = 0;
-unsigned int buttonFXRDebounce = 0;
-
-struct JudgmentData {
-    struct {
-        unsigned int earlyErrors;
-        unsigned int earlyNears;
-        unsigned int earlyCrits;
-        unsigned int scrits;
-        unsigned int lateCrits;
-        unsigned int lateNears;
-        unsigned int lateErrors;
-    } chipNotes;
-    struct {
-        unsigned int lateErrors;
-        unsigned int scrits;
-        unsigned int earlyErrors;
-    } longNotes;
-    struct {
-        unsigned int errors;
-        unsigned int scrits;
-    } volumeNotes;
-} judgmentData;
-
-void buildTrack() {
     laneTexture = new Texture();
     laneTexture->loadImage("./data/textures/lane.png");
-    measureDivider = new Texture();
-    measureDivider->loadImage("./data/textures/measure_divider.png");
+    measureDividerTexture = new Texture();
+    measureDividerTexture->loadImage("./data/textures/measure_divider.png");
     buttonChipTexture = new Texture();
     buttonChipTexture->loadImage("./data/textures/button_chip.png");
     buttonChipKeysoundTexture = new Texture();
@@ -138,105 +68,172 @@ void buildTrack() {
     fxLongTexture = new Texture();
     fxLongTexture->loadImage("./data/textures/fx_long.png");
 
-    for (unsigned int i = 0; i < lanes; i++) {
-        Model* trackModel = new Model();
-        trackModel->addVertex(Vertex({offset + (laneWidth * (float)i),       0.0f, -(trackHeight)}, {(1.0f / (float)lanes) * i,        1.0f}));
-        trackModel->addVertex(Vertex({offset + (laneWidth * (float)(i + 1)), 0.0f, -(trackHeight)}, {(1.0f / (float)lanes) * (i + 1),  1.0f}));
-        trackModel->addVertex(Vertex({offset + (laneWidth * (float)(i + 1)), 0.0f, 0.0f          }, {(1.0f / (float)lanes) * (i + 1),  0.0f}));
-        trackModel->addVertex(Vertex({offset + (laneWidth * (float)i),       0.0f, -(trackHeight)}, {(1.0f / (float)lanes) * i,        1.0f}));
-        trackModel->addVertex(Vertex({offset + (laneWidth * (float)(i + 1)), 0.0f, 0.0f          }, {(1.0f / (float)lanes) * (i + 1),  0.0f}));
-        trackModel->addVertex(Vertex({offset + (laneWidth * (float)i),       0.0f, 0.0f          }, {(1.0f / (float)lanes) * i,        0.0f}));
-        trackModel->buildModel();
-        trackModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + laneWidth, -4.0f, 0.0f));
-        trackModel->setTexture(laneTexture);
-        Renderer::addRenderable(trackModel);
-    }
+    uint8_t i = 0;
+    trackLaneObjects.laneVolL = new Object();
+    trackLaneObjects.laneVolL->model = new Model();
+    trackLaneObjects.laneVolL->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneVolL->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, 0.0f},        {(1.0f / (float)lanes) * (i + 1), 1.0f}));
+    trackLaneObjects.laneVolL->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneVolL->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneVolL->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneVolL->model->addVertex(Vertex({(laneWidth * (float)(i)),     0.0f, trackHeight}, {(1.0f / (float)lanes) * (i),     0.0f}));
+    trackLaneObjects.laneVolL->model->buildModel();
+    trackLaneObjects.laneVolL->setTexture(laneTexture);
+    trackLaneObjects.laneVolL->setPosition(glm::vec3(-(trackWidth / 2.0f), -4.0f, -trackHeight));
+    addObject(trackLaneObjects.laneVolL);
 
-    laneHighlightA = new Model();
-    laneHighlightA->addVertex(Vertex({0.0f,      0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightA->addVertex(Vertex({laneWidth, 0.0f,         0.0f}, {1.0f, 0.0f}));
-    laneHighlightA->addVertex(Vertex({laneWidth, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightA->addVertex(Vertex({0.0f,      0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightA->addVertex(Vertex({laneWidth, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightA->addVertex(Vertex({0.0f,      0.0f, -trackHeight}, {0.0f, 1.0f}));
-    laneHighlightA->buildModel();
-    laneHighlightA->setColor(colorNoHit);
-    laneHighlightA->setPosition(glm::vec3(-(trackWidth / 2.0f) + laneWidth, laneHighlightHeight, 0.0f));
-    laneHighlightA->setVisibility(false);
-    Renderer::addRenderable(laneHighlightA);
+    i += 1;
+    trackLaneObjects.laneA = new Object();
+    trackLaneObjects.laneA->model = new Model();
+    trackLaneObjects.laneA->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneA->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, 0.0f},        {(1.0f / (float)lanes) * (i + 1), 1.0f}));
+    trackLaneObjects.laneA->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneA->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneA->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneA->model->addVertex(Vertex({(laneWidth * (float)(i)),     0.0f, trackHeight}, {(1.0f / (float)lanes) * (i),     0.0f}));
+    trackLaneObjects.laneA->model->buildModel();
+    trackLaneObjects.laneA->setTexture(laneTexture);
+    trackLaneObjects.laneA->setPosition(glm::vec3(-(trackWidth / 2.0f), -4.0f, -trackHeight));
+    addObject(trackLaneObjects.laneA);
 
-    laneHighlightB = new Model();
-    laneHighlightB->addVertex(Vertex({0.0f,      0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightB->addVertex(Vertex({laneWidth, 0.0f,         0.0f}, {1.0f, 0.0f}));
-    laneHighlightB->addVertex(Vertex({laneWidth, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightB->addVertex(Vertex({0.0f,      0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightB->addVertex(Vertex({laneWidth, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightB->addVertex(Vertex({0.0f,      0.0f, -trackHeight}, {0.0f, 1.0f}));
-    laneHighlightB->buildModel();
-    laneHighlightB->setColor(colorNoHit);
-    laneHighlightB->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 2), laneHighlightHeight, 0.0f));
-    laneHighlightB->setVisibility(false);
-    Renderer::addRenderable(laneHighlightB);
+    i += 1;
+    trackLaneObjects.laneB = new Object();
+    trackLaneObjects.laneB->model = new Model();
+    trackLaneObjects.laneB->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneB->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, 0.0f},        {(1.0f / (float)lanes) * (i + 1), 1.0f}));
+    trackLaneObjects.laneB->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneB->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneB->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneB->model->addVertex(Vertex({(laneWidth * (float)(i)),     0.0f, trackHeight}, {(1.0f / (float)lanes) * (i),     0.0f}));
+    trackLaneObjects.laneB->model->buildModel();
+    trackLaneObjects.laneB->setTexture(laneTexture);
+    trackLaneObjects.laneB->setPosition(glm::vec3(-(trackWidth / 2.0f), -4.0f, -trackHeight));
+    addObject(trackLaneObjects.laneB);
 
-    laneHighlightC = new Model();
-    laneHighlightC->addVertex(Vertex({0.0f,      0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightC->addVertex(Vertex({laneWidth, 0.0f,         0.0f}, {1.0f, 0.0f}));
-    laneHighlightC->addVertex(Vertex({laneWidth, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightC->addVertex(Vertex({0.0f,      0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightC->addVertex(Vertex({laneWidth, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightC->addVertex(Vertex({0.0f,      0.0f, -trackHeight}, {0.0f, 1.0f}));
-    laneHighlightC->buildModel();
-    laneHighlightC->setColor(colorNoHit);
-    laneHighlightC->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 3), laneHighlightHeight, 0.0f));
-    laneHighlightC->setVisibility(false);
-    Renderer::addRenderable(laneHighlightC);
+    i += 1;
+    trackLaneObjects.laneC = new Object();
+    trackLaneObjects.laneC->model = new Model();
+    trackLaneObjects.laneC->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneC->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, 0.0f},        {(1.0f / (float)lanes) * (i + 1), 1.0f}));
+    trackLaneObjects.laneC->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneC->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneC->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneC->model->addVertex(Vertex({(laneWidth * (float)(i)),     0.0f, trackHeight}, {(1.0f / (float)lanes) * (i),     0.0f}));
+    trackLaneObjects.laneC->model->buildModel();
+    trackLaneObjects.laneC->setTexture(laneTexture);
+    trackLaneObjects.laneC->setPosition(glm::vec3(-(trackWidth / 2.0f), -4.0f, -trackHeight));
+    addObject(trackLaneObjects.laneC);
 
-    laneHighlightD = new Model();
-    laneHighlightD->addVertex(Vertex({0.0f,      0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightD->addVertex(Vertex({laneWidth, 0.0f,         0.0f}, {1.0f, 0.0f}));
-    laneHighlightD->addVertex(Vertex({laneWidth, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightD->addVertex(Vertex({0.0f,      0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightD->addVertex(Vertex({laneWidth, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightD->addVertex(Vertex({0.0f,      0.0f, -trackHeight}, {0.0f, 1.0f}));
-    laneHighlightD->buildModel();
-    laneHighlightD->setColor(colorNoHit);
-    laneHighlightD->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 4), laneHighlightHeight, 0.0f));
-    laneHighlightD->setVisibility(false);
-    Renderer::addRenderable(laneHighlightD);
+    i += 1;
+    trackLaneObjects.laneD = new Object();
+    trackLaneObjects.laneD->model = new Model();
+    trackLaneObjects.laneD->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneD->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, 0.0f},        {(1.0f / (float)lanes) * (i + 1), 1.0f}));
+    trackLaneObjects.laneD->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneD->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneD->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneD->model->addVertex(Vertex({(laneWidth * (float)(i)),     0.0f, trackHeight}, {(1.0f / (float)lanes) * (i),     0.0f}));
+    trackLaneObjects.laneD->model->buildModel();
+    trackLaneObjects.laneD->setTexture(laneTexture);
+    trackLaneObjects.laneD->setPosition(glm::vec3(-(trackWidth / 2.0f), -4.0f, -trackHeight));
+    addObject(trackLaneObjects.laneD);
 
-    laneHighlightFXL = new Model();
-    laneHighlightFXL->addVertex(Vertex({0.0f,             0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightFXL->addVertex(Vertex({laneWidth * 2.0f, 0.0f,         0.0f}, {1.0f, 0.0f}));
-    laneHighlightFXL->addVertex(Vertex({laneWidth * 2.0f, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightFXL->addVertex(Vertex({0.0f,             0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightFXL->addVertex(Vertex({laneWidth * 2.0f, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightFXL->addVertex(Vertex({0.0f,             0.0f, -trackHeight}, {0.0f, 1.0f}));
-    laneHighlightFXL->buildModel();
-    laneHighlightFXL->setColor(colorNoHit);
-    laneHighlightFXL->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 1), laneHighlightHeight, 0.0f));
-    laneHighlightFXL->setVisibility(false);
-    Renderer::addRenderable(laneHighlightFXL);
+    i += 1;
+    trackLaneObjects.laneVolR = new Object();
+    trackLaneObjects.laneVolR->model = new Model();
+    trackLaneObjects.laneVolR->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneVolR->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, 0.0f},        {(1.0f / (float)lanes) * (i + 1), 1.0f}));
+    trackLaneObjects.laneVolR->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneVolR->model->addVertex(Vertex({(laneWidth * (float)i),       0.0f, 0.0f},        {(1.0f / (float)lanes) * i,       1.0f}));
+    trackLaneObjects.laneVolR->model->addVertex(Vertex({(laneWidth * (float)(i + 1)), 0.0f, trackHeight}, {(1.0f / (float)lanes) * (i + 1), 0.0f}));
+    trackLaneObjects.laneVolR->model->addVertex(Vertex({(laneWidth * (float)(i)),     0.0f, trackHeight}, {(1.0f / (float)lanes) * (i),     0.0f}));
+    trackLaneObjects.laneVolR->model->buildModel();
+    trackLaneObjects.laneVolR->setTexture(laneTexture);
+    trackLaneObjects.laneVolR->setPosition(glm::vec3(-(trackWidth / 2.0f), -4.0f, -trackHeight));
+    addObject(trackLaneObjects.laneVolR);
 
-    laneHighlightFXR = new Model();
-    laneHighlightFXR->addVertex(Vertex({0.0f,             0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightFXR->addVertex(Vertex({laneWidth * 2.0f, 0.0f,         0.0f}, {1.0f, 0.0f}));
-    laneHighlightFXR->addVertex(Vertex({laneWidth * 2.0f, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightFXR->addVertex(Vertex({0.0f,             0.0f,         0.0f}, {0.0f, 0.0f}));
-    laneHighlightFXR->addVertex(Vertex({laneWidth * 2.0f, 0.0f, -trackHeight}, {1.0f, 1.0f}));
-    laneHighlightFXR->addVertex(Vertex({0.0f,             0.0f, -trackHeight}, {0.0f, 1.0f}));
-    laneHighlightFXR->buildModel();
-    laneHighlightFXR->setColor(colorNoHit);
-    laneHighlightFXR->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 3), laneHighlightHeight, 0.0f));
-    laneHighlightFXR->setVisibility(false);
-    Renderer::addRenderable(laneHighlightFXR);
+    laneHighlightButton = new Model();
+    laneHighlightButton->addVertex(Vertex({0.0f,      0.0f, 0.0f},        {0.0f, 0.0f}));
+    laneHighlightButton->addVertex(Vertex({laneWidth, 0.0f, 0.0f},        {1.0f, 0.0f}));
+    laneHighlightButton->addVertex(Vertex({laneWidth, 0.0f, trackHeight}, {1.0f, 1.0f}));
+    laneHighlightButton->addVertex(Vertex({0.0f,      0.0f, 0.0f},        {0.0f, 0.0f}));
+    laneHighlightButton->addVertex(Vertex({laneWidth, 0.0f, trackHeight}, {1.0f, 1.0f}));
+    laneHighlightButton->addVertex(Vertex({0.0f,      0.0f, trackHeight}, {0.0f, 1.0f}));
+    laneHighlightButton->buildModel();
+
+    laneHighlightFX = new Model();
+    laneHighlightFX->addVertex(Vertex({0.0f,             0.0f, 0.0f},        {0.0f, 0.0f}));
+    laneHighlightFX->addVertex(Vertex({laneWidth * 2.0f, 0.0f, 0.0f},        {1.0f, 0.0f}));
+    laneHighlightFX->addVertex(Vertex({laneWidth * 2.0f, 0.0f, trackHeight}, {1.0f, 1.0f}));
+    laneHighlightFX->addVertex(Vertex({0.0f,             0.0f, 0.0f},        {0.0f, 0.0f}));
+    laneHighlightFX->addVertex(Vertex({laneWidth * 2.0f, 0.0f, trackHeight}, {1.0f, 1.0f}));
+    laneHighlightFX->addVertex(Vertex({0.0f,             0.0f, trackHeight}, {0.0f, 1.0f}));
+    laneHighlightFX->buildModel();
+
+    i = 1;
+    laneHighlights.laneA = new Object();
+    laneHighlights.laneA->model = laneHighlightButton;
+    laneHighlights.laneA->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * (float)i), laneHighlightHeight, -(trackHeight)));
+    laneHighlights.laneA->setVisibility(false);
+    addObject(laneHighlights.laneA);
+
+    i += 1;
+    laneHighlights.laneB = new Object();
+    laneHighlights.laneB->model = laneHighlightButton;
+    laneHighlights.laneB->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * (float)i), laneHighlightHeight, -(trackHeight)));
+    laneHighlights.laneB->setVisibility(false);
+    addObject(laneHighlights.laneB);
+
+    i += 1;
+    laneHighlights.laneC = new Object();
+    laneHighlights.laneC->model = laneHighlightButton;
+    laneHighlights.laneC->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * (float)i), laneHighlightHeight, -(trackHeight)));
+    laneHighlights.laneC->setVisibility(false);
+    addObject(laneHighlights.laneC);
+
+    i += 1;
+    laneHighlights.laneD = new Object();
+    laneHighlights.laneD->model = laneHighlightButton;
+    laneHighlights.laneD->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * (float)i), laneHighlightHeight, -(trackHeight)));
+    laneHighlights.laneD->setVisibility(false);
+    addObject(laneHighlights.laneD);
+
+    i = 0;
+    laneHighlights.laneFXL = new Object();
+    laneHighlights.laneFXL->model = laneHighlightFX;
+    laneHighlights.laneFXL->setPosition(glm::vec3(-(trackWidth / 2.0f) + laneWidth + (laneWidth * (float)i * 2.0f), laneHighlightHeight, -(trackHeight)));
+    laneHighlights.laneFXL->setVisibility(false);
+    addObject(laneHighlights.laneFXL);
+
+    i += 1;
+    laneHighlights.laneFXR = new Object();
+    laneHighlights.laneFXR->model = laneHighlightFX;
+    laneHighlights.laneFXR->setPosition(glm::vec3(-(trackWidth / 2.0f) + laneWidth + (laneWidth * (float)i * 2.0f), laneHighlightHeight, -(trackHeight)));
+    laneHighlights.laneFXR->setVisibility(false);
+    addObject(laneHighlights.laneFXR);
+
+    laneHighlightATimer = 0;
+    laneHighlightBTimer = 0;
+    laneHighlightCTimer = 0;
+    laneHighlightDTimer = 0;
+    laneHighlightFXLTimer = 0;
+    laneHighlightFXRTimer = 0;
+
+    buttonADebounce = 0;
+    buttonBDebounce = 0;
+    buttonCDebounce = 0;
+    buttonDDebounce = 0;
+    buttonFXLDebounce = 0;
+    buttonFXRDebounce = 0;
+
 }
 
-void buildNotes(ChartData* data) {
+void SceneGameplay::buildNotes(ChartData* data) {
     // currently a quick attempt at getting notes on the screen
     // SHOULD be optimized later to just reuse a few models and redraw it on different positions
     float currentPosition = -basePosition;
     const float defaultMeasureWidth = (trackHeight / 4.0f) * laneSpeed;
-    for (auto& measure : data->measures) {
+    /*for (auto& measure : data->measures) {
         float beatHeight = defaultMeasureWidth / measure->beats.size();
         for (auto& beat : measure->beats) {
             if (beat->A == NoteType::Chip) {
@@ -403,59 +400,59 @@ void buildNotes(ChartData* data) {
             }
             currentPosition -= beatHeight;
         }
-    }
+    }*/
 }
 
-void buildButtonDisplay() {
+void SceneGameplay::buildButtonDisplay() {
     UIElement* controllerDisplayBackground = new UIElement();
     controllerDisplayBackground->setSize(glm::ivec2(150, 80));
     controllerDisplayBackground->setPosition(glm::ivec2(40, 40));
     controllerDisplayBackground->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
-    Renderer::addInterface(controllerDisplayBackground);
+    addInterface(controllerDisplayBackground);
 
-    buttonADisplay = new UIElement();
-    buttonADisplay->setSize(glm::ivec2(20, 20));
-    buttonADisplay->setPosition(glm::ivec2(60, 68));
-    buttonADisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
-    Renderer::addInterface(buttonADisplay);
+    buttonDisplayElements.buttonA = new UIElement();
+    buttonDisplayElements.buttonA->setSize(glm::ivec2(20, 20));
+    buttonDisplayElements.buttonA->setPosition(glm::ivec2(60, 68));
+    buttonDisplayElements.buttonA->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    addInterface(buttonDisplayElements.buttonA);
 
-    buttonBDisplay = new UIElement();
-    buttonBDisplay->setSize(glm::ivec2(20, 20));
-    buttonBDisplay->setPosition(glm::ivec2(90, 68));
-    buttonBDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
-    Renderer::addInterface(buttonBDisplay);
+    buttonDisplayElements.buttonB = new UIElement();
+    buttonDisplayElements.buttonB->setSize(glm::ivec2(20, 20));
+    buttonDisplayElements.buttonB->setPosition(glm::ivec2(90, 68));
+    buttonDisplayElements.buttonB->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    addInterface(buttonDisplayElements.buttonB);
 
-    buttonCDisplay = new UIElement();
-    buttonCDisplay->setSize(glm::ivec2(20, 20));
-    buttonCDisplay->setPosition(glm::ivec2(120, 68));
-    buttonCDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
-    Renderer::addInterface(buttonCDisplay);
+    buttonDisplayElements.buttonC = new UIElement();
+    buttonDisplayElements.buttonC->setSize(glm::ivec2(20, 20));
+    buttonDisplayElements.buttonC->setPosition(glm::ivec2(120, 68));
+    buttonDisplayElements.buttonC->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    addInterface(buttonDisplayElements.buttonC);
 
-    buttonDDisplay = new UIElement();
-    buttonDDisplay->setSize(glm::ivec2(20, 20));
-    buttonDDisplay->setPosition(glm::ivec2(150, 68));
-    buttonDDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
-    Renderer::addInterface(buttonDDisplay);
+    buttonDisplayElements.buttonD = new UIElement();
+    buttonDisplayElements.buttonD->setSize(glm::ivec2(20, 20));
+    buttonDisplayElements.buttonD->setPosition(glm::ivec2(150, 68));
+    buttonDisplayElements.buttonD->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    addInterface(buttonDisplayElements.buttonD);
 
-    buttonFXLDisplay = new UIElement();
-    buttonFXLDisplay->setSize(glm::ivec2(20, 10));
-    buttonFXLDisplay->setPosition(glm::ivec2(75, 94));
-    buttonFXLDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
-    Renderer::addInterface(buttonFXLDisplay);
+    buttonDisplayElements.buttonFXL = new UIElement();
+    buttonDisplayElements.buttonFXL->setSize(glm::ivec2(20, 10));
+    buttonDisplayElements.buttonFXL->setPosition(glm::ivec2(75, 94));
+    buttonDisplayElements.buttonFXL->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    addInterface(buttonDisplayElements.buttonFXL);
 
-    buttonFXRDisplay = new UIElement();
-    buttonFXRDisplay->setSize(glm::ivec2(20, 10));
-    buttonFXRDisplay->setPosition(glm::ivec2(135, 94));
-    buttonFXRDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
-    Renderer::addInterface(buttonFXRDisplay);
+    buttonDisplayElements.buttonFXR = new UIElement();
+    buttonDisplayElements.buttonFXR->setSize(glm::ivec2(20, 10));
+    buttonDisplayElements.buttonFXR->setPosition(glm::ivec2(135, 94));
+    buttonDisplayElements.buttonFXR->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+    addInterface(buttonDisplayElements.buttonFXR);
 }
 
-void buildJudgmentCounters(glm::ivec2 windowResolution) {
+void SceneGameplay::buildJudgmentCounters(glm::ivec2 windowResolution) {
     UIElement* judgmentCounterBackground = new UIElement();
     judgmentCounterBackground->setSize(glm::ivec2(200));
     judgmentCounterBackground->setPosition(glm::ivec2(windowResolution.x - 200, (windowResolution.y / 2)));
     judgmentCounterBackground->setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.1f));
-    Renderer::addInterface(judgmentCounterBackground);
+    addInterface(judgmentCounterBackground);
 
     glm::ivec2 labelSize;
 
@@ -480,47 +477,47 @@ void buildJudgmentCounters(glm::ivec2 windowResolution) {
     judgmentLabelEarlyErrors->setSize(labelSize);
     judgmentLabelEarlyErrors->setPosition(glm::ivec2(windowResolution.x - 200, (windowResolution.y / 2)));
     judgmentLabelEarlyErrors->setTexture(labelEarlyErrors);
-    Renderer::addInterface(judgmentLabelEarlyErrors);
+    addInterface(judgmentLabelEarlyErrors);
 
     UIElement* judgmentLabelEarlyNears = new UIElement();
     judgmentLabelEarlyNears->setSize(labelSize);
     judgmentLabelEarlyNears->setPosition(glm::ivec2(windowResolution.x - 200, (windowResolution.y / 2) + labelSize.y));
     judgmentLabelEarlyNears->setTexture(labelEarlyNears);
-    Renderer::addInterface(judgmentLabelEarlyNears);
+    addInterface(judgmentLabelEarlyNears);
 
     UIElement* judgmentLabelEarlyCrits = new UIElement();
     judgmentLabelEarlyCrits->setSize(labelSize);
     judgmentLabelEarlyCrits->setPosition(glm::ivec2(windowResolution.x - 200, (windowResolution.y / 2) + (labelSize.y * 2)));
     judgmentLabelEarlyCrits->setTexture(labelEarlyCrits);
-    Renderer::addInterface(judgmentLabelEarlyCrits);
+    addInterface(judgmentLabelEarlyCrits);
 
     UIElement* judgmentLabelSCrits = new UIElement();
     judgmentLabelSCrits->setSize(labelSize);
     judgmentLabelSCrits->setPosition(glm::ivec2(windowResolution.x - 200, (windowResolution.y / 2) + (labelSize.y * 3)));
     judgmentLabelSCrits->setTexture(labelSCrits);
-    Renderer::addInterface(judgmentLabelSCrits);
+    addInterface(judgmentLabelSCrits);
 
     UIElement* judgmentLabelLateCrits = new UIElement();
     judgmentLabelLateCrits->setSize(labelSize);
     judgmentLabelLateCrits->setPosition(glm::ivec2(windowResolution.x - 200, (windowResolution.y / 2) + (labelSize.y * 4)));
     judgmentLabelLateCrits->setTexture(labelLateCrits);
-    Renderer::addInterface(judgmentLabelLateCrits);
+    addInterface(judgmentLabelLateCrits);
 
     UIElement* judgmentLabelLateNears = new UIElement();
     judgmentLabelLateNears->setSize(labelSize);
     judgmentLabelLateNears->setPosition(glm::ivec2(windowResolution.x - 200, (windowResolution.y / 2) + (labelSize.y * 5)));
     judgmentLabelLateNears->setTexture(labelLateNears);
-    Renderer::addInterface(judgmentLabelLateNears);
+    addInterface(judgmentLabelLateNears);
 
     UIElement* judgmentLabelLateErrors = new UIElement();
     judgmentLabelLateErrors->setSize(labelSize);
     judgmentLabelLateErrors->setPosition(glm::ivec2(windowResolution.x - 200, (windowResolution.y / 2) + (labelSize.y * 6)));
     judgmentLabelLateErrors->setTexture(labelLateErrors);
-    Renderer::addInterface(judgmentLabelLateErrors);
+    addInterface(judgmentLabelLateErrors);
 
 }
 
-void buildJudgmentDisplay(glm::ivec2 windowResolution) {
+void SceneGameplay::buildJudgmentDisplay(glm::ivec2 windowResolution) {
     lateDisplay = new UIElement();
     Texture* lateDisplayTexture = new Texture();
     glm::ivec2 lateDisplaySize = lateDisplayTexture->setFontString(Renderer::defaultFont, "LATE");
@@ -529,7 +526,7 @@ void buildJudgmentDisplay(glm::ivec2 windowResolution) {
     lateDisplay->setPosition(glm::ivec2((windowResolution.x / 2) - (lateDisplaySize.x / 2) - (lateDisplaySize.x), (windowResolution.y / 2) - lateDisplaySize.y / 2));
     lateDisplay->setColor(colorLate);
     lateDisplay->setVisibility(false);
-    Renderer::addInterface(lateDisplay);
+    addInterface(lateDisplay);
 
     earlyDisplay = new UIElement();
     Texture* earlyDisplayTexture = new Texture();
@@ -539,7 +536,7 @@ void buildJudgmentDisplay(glm::ivec2 windowResolution) {
     earlyDisplay->setPosition(glm::ivec2((windowResolution.x / 2) - (earlyDisplaySize.x / 2) - (earlyDisplaySize.x), (windowResolution.y / 2) - earlyDisplaySize.y / 2));
     earlyDisplay->setColor(colorEarly);
     earlyDisplay->setVisibility(false);
-    Renderer::addInterface(earlyDisplay);
+    addInterface(earlyDisplay);
     
     hitDeltaDisplay = new UIElement();
     hitDeltaTexture = new Texture();
@@ -548,10 +545,11 @@ void buildJudgmentDisplay(glm::ivec2 windowResolution) {
     hitDeltaDisplay->setSize(hitDeltaTextureSize);
     hitDeltaDisplay->setPosition(glm::ivec2((Renderer::getCurrentResolution().x / 2) + (hitDeltaTextureSize.x / 2), (Renderer::getCurrentResolution().y / 2) - (hitDeltaTextureSize.y / 2)));
     hitDeltaDisplay->setColor(colorEarly);
-    Renderer::addInterface(hitDeltaDisplay);
+    hitDeltaDisplay->setVisibility(false);
+    addInterface(hitDeltaDisplay);
 }
 
-void buildInterface() {
+void SceneGameplay::buildInterface() {
     glm::ivec2 windowResolution = Renderer::getCurrentResolution();
 
     scoreDisplay = new UIElement();
@@ -560,7 +558,7 @@ void buildInterface() {
     scoreDisplay->setSize(scoreSize);
     scoreDisplay->setTexture(scoreTexture);
     scoreDisplay->setPosition(glm::ivec2(windowResolution.x - scoreSize.x - 100, 80));
-    Renderer::addInterface(scoreDisplay);
+    addInterface(scoreDisplay);
     
     Texture* lifeMeterTexture = new Texture();
     glm::ivec2 lifeMeterSize = lifeMeterTexture->loadImage("./data/textures/life_meter.png");
@@ -568,7 +566,7 @@ void buildInterface() {
     lifeMeter->setSize(lifeMeterSize);
     lifeMeter->setPosition(glm::ivec2(windowResolution.x - 200, windowResolution.y - (lifeMeterSize.y)) - (lifeMeterSize.y / 4));
     lifeMeter->setTexture(lifeMeterTexture);
-    Renderer::addInterface(lifeMeter);
+    addInterface(lifeMeter);
 
     buildButtonDisplay();
     buildJudgmentDisplay(windowResolution);
@@ -579,7 +577,7 @@ void buildInterface() {
     fadeIn->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     fadeIn->setPosition(glm::ivec2(0));
     fadeIn->setVisibility(true);
-    Renderer::addInterface(fadeIn);
+    addInterface(fadeIn);
 }
 
 SceneGameplay::SceneGameplay() {
@@ -594,40 +592,40 @@ SceneGameplay::SceneGameplay() {
     fadeInTimer = fadeInTimerMax;
 }
 
-void updateInputDisplay(InputState state) {
+void SceneGameplay::updateInputDisplay(InputState state) {
     if (state.bits.buttonA) {
-        buttonADisplay->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
+        buttonDisplayElements.buttonA->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
     } else {
-        buttonADisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+        buttonDisplayElements.buttonA->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
     }
     if (state.bits.buttonB) {
-        buttonBDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
+        buttonDisplayElements.buttonB->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
     } else {
-        buttonBDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+        buttonDisplayElements.buttonB->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
     }
     if (state.bits.buttonC) {
-        buttonCDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
+        buttonDisplayElements.buttonC->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
     } else {
-        buttonCDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+        buttonDisplayElements.buttonC->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
     }
     if (state.bits.buttonD) {
-        buttonDDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
+        buttonDisplayElements.buttonD->setColor(glm::vec4(0.0f, 0.0f, 0.8f, 1.0f));
     } else {
-        buttonDDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+        buttonDisplayElements.buttonD->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
     }
     if (state.bits.buttonFXL) {
-        buttonFXLDisplay->setColor(glm::vec4(0.8f, 0.0f, 0.0f, 1.0f));
+        buttonDisplayElements.buttonFXL->setColor(glm::vec4(0.8f, 0.0f, 0.0f, 1.0f));
     } else {
-        buttonFXLDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+        buttonDisplayElements.buttonFXL->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
     }
     if (state.bits.buttonFXR) {
-        buttonFXRDisplay->setColor(glm::vec4(0.8f, 0.0f, 0.0f, 1.0f));
+        buttonDisplayElements.buttonFXR->setColor(glm::vec4(0.8f, 0.0f, 0.0f, 1.0f));
     } else {
-        buttonFXRDisplay->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
+        buttonDisplayElements.buttonFXR->setColor(glm::vec4(0.0f, 0.0f, 0.0f, 0.8f));
     }
 }
 
-void tickDownTimers(unsigned int tickDelta) {
+void SceneGameplay::tickDownTimers(unsigned int tickDelta) {
     if (laneHighlightATimer > tickDelta) {
         laneHighlightATimer -= tickDelta;
     } else {
@@ -684,29 +682,29 @@ void tickDownTimers(unsigned int tickDelta) {
     }
 }
 
-void updateLaneHighlightVisibility(InputState state) {
+void SceneGameplay::updateLaneHighlightVisibility(InputState state) {
     if (laneHighlightATimer == 0) {
-        laneHighlightA->setVisibility(false);
+        laneHighlights.laneA->setVisibility(false);
     }
     if (laneHighlightBTimer == 0) {
-        laneHighlightB->setVisibility(false);
+        laneHighlights.laneB->setVisibility(false);
     }
     if (laneHighlightCTimer == 0) {
-        laneHighlightC->setVisibility(false);
+        laneHighlights.laneC->setVisibility(false);
     }
     if (laneHighlightDTimer == 0) {
-        laneHighlightD->setVisibility(false);
+        laneHighlights.laneD->setVisibility(false);
     }
     if (laneHighlightFXLTimer == 0) {
-        laneHighlightFXL->setVisibility(false);
+        laneHighlights.laneFXL->setVisibility(false);
     }
     if (laneHighlightFXRTimer == 0) {
-        laneHighlightFXR->setVisibility(false);
+        laneHighlights.laneFXR->setVisibility(false);
     }
 
     if (state.bits.buttonA) {
         laneHighlightATimer = 33;
-        laneHighlightA->setVisibility(true);
+        laneHighlights.laneA->setVisibility(true);
     }
 
     if (lateIndicatorTimer == 0) {
@@ -721,27 +719,27 @@ void updateLaneHighlightVisibility(InputState state) {
 
     if (state.bits.buttonB) {
         laneHighlightBTimer = 33;
-        laneHighlightB->setVisibility(true);
+        laneHighlights.laneB->setVisibility(true);
     }
     if (state.bits.buttonC) {
         laneHighlightCTimer = 33;
-        laneHighlightC->setVisibility(true);
+        laneHighlights.laneC->setVisibility(true);
     }
     if (state.bits.buttonD) {
         laneHighlightDTimer = 33;
-        laneHighlightD->setVisibility(true);
+        laneHighlights.laneD->setVisibility(true);
     }
     if (state.bits.buttonFXL) {
         laneHighlightFXLTimer = 33;
-        laneHighlightFXL->setVisibility(true);
+        laneHighlights.laneFXL->setVisibility(true);
     }
     if (state.bits.buttonFXR) {
         laneHighlightFXRTimer = 33;
-        laneHighlightFXR->setVisibility(true);
+        laneHighlights.laneFXR->setVisibility(true);
     }
 }
 
-void updateScoreDisplay() {
+void SceneGameplay::updateScoreDisplay() {
     if (previousScore != score) {
         previousScore = score;
         delete scoreTexture;
@@ -755,44 +753,44 @@ void updateScoreDisplay() {
     }
 }
 
-void scrollChart(unsigned int tickDelta) {
+void SceneGameplay::scrollChart(unsigned int tickDelta) {
     float scrollDistance = (tickDelta / 1000.0f) * scrollSpeed;
     
-    for (auto& note : noteList) {
+    /*for (auto& note : noteList) {
         note->setPosition(note->getPosition() + glm::vec3(0.0f, 0.0f, scrollDistance));
-    }
+    }*/
 
     //buttonChip->setPosition(glm::vec3(-(trackWidth / 2.0f) + laneWidth, buttonChipHeightPos, progress));    
 }
 
-void testHits() {
+void SceneGameplay::testHits() {
     runTimer;
     /*
     // no hits
     if (runTimer < (expectedTime - errorWindow) || runTimer > (expectedTime + errorWindow)) {
-        laneHighlightA->setColor(colorNoHit);
+        laneHighlights.laneA->setColor(colorNoHit);
     } else {    
         if (buttonADebounce == 0 && !handledButton) {
             buttonADebounce += 8;
             handledButton = true;
             hitDelta = runTimer - expectedTime;
             if (runTimer >= (expectedTime - scritWindow) && runTimer < (expectedTime + scritWindow)) {
-                laneHighlightA->setColor(colorSCritHit);
+                laneHighlights.laneA->setColor(colorSCritHit);
                 exscore += 5;
                 score += 1000;
                 buttonChip->setVisibility(false);
             } else if (runTimer >= (expectedTime - critWindow) && runTimer < (expectedTime + critWindow)) {
-                laneHighlightA->setColor(colorCritHit);
+                laneHighlights.laneA->setColor(colorCritHit);
                 exscore += 4;
                 score += 1000;
                 buttonChip->setVisibility(false);
             } else if (runTimer >= (expectedTime - nearWindow) && runTimer < (expectedTime + nearWindow)) {
-                laneHighlightA->setColor(colorNearHit);
+                laneHighlights.laneA->setColor(colorNearHit);
                 exscore += 1;
                 score += 500;
                 buttonChip->setVisibility(false);
             } else {
-                laneHighlightA->setColor(colorErrorHit);
+                laneHighlights.laneA->setColor(colorErrorHit);
             }
 
             if (hitDeltaTexture) {
@@ -827,7 +825,6 @@ void testHits() {
 
 void SceneGameplay::update(unsigned int tickDelta) {
     runTimer += tickDelta;
-
     InputState state = Input::getState();
     updateInputDisplay(state);
     updateLaneHighlightVisibility(state);
@@ -865,4 +862,13 @@ void SceneGameplay::update(unsigned int tickDelta) {
         buttonChip->setVisibility(true);
     } 
     */
+}
+
+void SceneGameplay::draw() {
+    for (auto& obj : objectList) {
+        obj->draw();
+    }
+    for (auto& element : interfaceList) {
+        element->draw();
+    }
 }

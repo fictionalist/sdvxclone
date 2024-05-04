@@ -13,8 +13,6 @@ namespace Renderer {
     void quit();
 
     bool isInitialized();
-    void addRenderable(Renderable*);
-    void addInterface(Renderable*);
     
     void resizeWindow(glm::ivec2);
     void resetFramebuffer();

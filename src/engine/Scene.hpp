@@ -4,12 +4,16 @@
 
 #include "Renderer.hpp"
 #include "Renderable.hpp"
+#include "Object.hpp"
 #include "UIElement.hpp"
 #include "Input.hpp"
 
 enum class SceneList;
 
 class Scene {
+protected:
+    std::vector<Renderable*> interfaceList;
+    std::vector<Object*> objectList;
 public:
     static Scene* currentScene;
     static void setScene(SceneList);
@@ -17,6 +21,10 @@ public:
     Scene();
     ~Scene();
     virtual void update(unsigned int deltaTime);
+    virtual void draw();
+    
+    void addInterface(Renderable*);
+    void addObject(Object*);
 };
 
 #include "../scenes/SceneList.hpp"

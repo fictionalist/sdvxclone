@@ -12,6 +12,7 @@
 #include "Shader.hpp"
 #include "Camera.hpp"
 #include "Font.hpp"
+#include "Scene.hpp"
 #include "Image.hpp"
 #include "Renderable.hpp"
 #include "Model.hpp"
@@ -36,7 +37,10 @@ namespace Renderer {
     glm::mat4 gameProjection;
     unsigned int runTime = 0;
 
-    unsigned int processFramebuffer;
+    unsigned int multisampleFramebuffer = 0;
+    unsigned int multisampleTexture = 0;
+
+    unsigned int processFramebuffer = 0;
     unsigned int processVBO = 0;
     unsigned int processVAO = 0;
     unsigned int processTexture = 0;
@@ -54,14 +58,28 @@ void Renderer::resetFramebuffer() {
 }
 
 bool Renderer::generatePostProcessBuffer() {
-    glGenFramebuffers(1, &processFramebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, processFramebuffer);
+    glGenTextures(1, &multisampleTexture);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, multisampleTexture);
+    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 16, GL_RGB, resolution.x, resolution.y, GL_TRUE);
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+
+    glGenFramebuffers(1, &multisampleFramebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, multisampleFramebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, multisampleTexture, 0);
+
+    unsigned int multisampleRenderbuffer;
+    glGenRenderbuffers(1, &multisampleRenderbuffer);
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, multisampleRenderbuffer);
 
     glGenTextures(1, &processTexture);
     glBindTexture(GL_TEXTURE_2D, processTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, resolution.x, resolution.y, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glGenFramebuffers(1, &processFramebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, processFramebuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, processTexture, 0);
 
     unsigned int renderbuffer;
@@ -69,6 +87,7 @@ bool Renderer::generatePostProcessBuffer() {
     glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         GLenum error = glGetError();
@@ -160,20 +179,11 @@ bool Renderer::init(glm::ivec2 initialResolution) {
 
     glViewport(0, 0, resolution.x, resolution.y);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glEnable(GL_DEPTH);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     initialized = true;
     return true;
-}
-
-void Renderer::addRenderable(Renderable* r) {
-    renderList.push_back(r);
-}
-
-void Renderer::addInterface(Renderable* r) {
-    interfaceList.push_back(r);
 }
 
 void Renderer::update(unsigned long long delta) {
@@ -186,18 +196,20 @@ void Renderer::update(unsigned long long delta) {
 
 void Renderer::draw() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glBindFramebuffer(GL_FRAMEBUFFER, processFramebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, multisampleFramebuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    for (auto i : renderList) {
-        i->draw();
-    }
+    glEnable(GL_DEPTH_TEST);
+    
+    Scene::currentScene->draw();
 
-    for (auto i : interfaceList) {
-        i->draw();
-    }
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, multisampleFramebuffer);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, processFramebuffer);
+    glBlitFramebuffer(0, 0, resolution.x, resolution.y, 0, 0, resolution.x, resolution.y, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT);
+    glDisable(GL_DEPTH_TEST);
+
     glBindVertexArray(processVAO);
     glBindBuffer(GL_ARRAY_BUFFER, processVBO);
     glBindTexture(GL_TEXTURE_2D, processTexture);
@@ -217,16 +229,6 @@ void Renderer::quit() {
     if (defaultFont != nullptr)
         delete defaultFont;
     Font::quit();
-
-    for (auto i : renderList) {
-        delete i;
-    }
-    renderList.clear();
-
-    for (auto i : interfaceList) {
-        delete i;
-    }
-    interfaceList.clear();
 
     Texture::quit();
 
