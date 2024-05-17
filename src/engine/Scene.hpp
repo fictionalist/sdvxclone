@@ -4,6 +4,7 @@
 
 #include "Renderer.hpp"
 #include "Renderable.hpp"
+#include "Audio.hpp"
 #include "Object.hpp"
 #include "UIElement.hpp"
 #include "Input.hpp"
@@ -20,7 +21,7 @@ public:
 
     Scene();
     ~Scene();
-    virtual void update(unsigned int deltaTime);
+    virtual void update(float deltaTime);
     virtual void draw();
     
     void addInterface(Renderable*);

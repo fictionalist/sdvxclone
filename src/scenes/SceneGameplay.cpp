@@ -3,6 +3,11 @@
 #include <cstdint>
 #include <sstream>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "Audio.hpp"
+#include "AudioSource.hpp"
 #include "Logging.hpp"
 #include "UIElement.hpp"
 #include "Object.hpp"
@@ -10,47 +15,20 @@
 #include "Camera.hpp"
 #include "ChartReader.hpp"
 
-const float trackWidth = 12.0f;
-const float trackHeight = 60.0f;
-const float laneHighlightHeight = -3.995;
-const float measureDividerHeight = -3.9995;
-
 const unsigned int errorWindow = 133;
 const unsigned int nearWindow = 67;
 const unsigned int critWindow = 33;
 const unsigned int scritWindow = 16;
 
-const glm::vec4 colorNoHit = glm::vec4(0.1f, 0.1f, 0.8f, 0.2f);
+const glm::vec4 colorNoHit = glm::vec4(0.1f, 0.1f, 0.8f, 0.5f);
 const glm::vec4 colorErrorHit = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-const glm::vec4 colorNearHit = glm::vec4(0.8f, 0.1f, 0.8f, 0.4f);
-const glm::vec4 colorCritHit = glm::vec4(0.8f, 0.8f, 0.1f, 0.4f);
-const glm::vec4 colorSCritHit = glm::vec4(1.0f, 1.0f, 1.0f, 0.8f);
+const glm::vec4 colorNearHit = glm::vec4(0.8f, 0.1f, 0.8f, 0.5f);
+const glm::vec4 colorCritHit = glm::vec4(0.8f, 0.8f, 0.1f, 0.5f);
+const glm::vec4 colorSCritHit = glm::vec4(1.0f, 1.0f, 1.0f, 0.5f);
 const glm::vec4 colorLate = glm::vec4(1.0f, 0.4f, 0.4f, 0.9f);
 const glm::vec4 colorEarly = glm::vec4(0.5f, 0.5f, 1.0f, 0.9f);
-/*
-unsigned int score = 0;
-unsigned int previousScore = 0;
-unsigned int exscore = 0;
-
-float BPM = 220.0f;
-float laneSpeed = 8.00f;
-float basePosOffset = trackHeight * 6.0f;
-float basePosition = (trackHeight / 4.0f) * laneSpeed;
-float scrollSpeed = ((trackHeight / 4.0f) / 4.0f) * (BPM / 60.0f) * laneSpeed;]
-const unsigned int expectedTime = (unsigned int)(BPM / 60.0f) * 1000;
-*/
-
-float progress = 0.0f;
 
 void SceneGameplay::buildTrack() {
-    const uint8_t lanes = 6;
-    const uint8_t buttonLanes = 4;
-    const uint8_t fxLanes = 2;
-
-    const float laneWidth = trackWidth / ((float)lanes);
-    const float buttonChipHeight = trackHeight / 40.0f;
-    const float buttonChipHeightPos = -3.9f;
-
     laneTexture = new Texture();
     laneTexture->loadImage("./data/textures/lane.png");
     measureDividerTexture = new Texture();
@@ -152,29 +130,37 @@ void SceneGameplay::buildTrack() {
     trackLaneObjects.laneVolR->setPosition(glm::vec3(-(trackWidth / 2.0f), -4.0f, -trackHeight));
     addObject(trackLaneObjects.laneVolR);
 
+    laneHighlightButtonTexture = new Texture();
+    laneHighlightButtonTexture->loadImage("./data/textures/lane_highlight.png");
+    laneHighlightFXTexture = new Texture();
+    laneHighlightFXTexture->loadImage("./data/textures/lane_highlight_fx.png");
+
     laneHighlightButton = new Model();
-    laneHighlightButton->addVertex(Vertex({0.0f,      0.0f, 0.0f},        {0.0f, 0.0f}));
-    laneHighlightButton->addVertex(Vertex({laneWidth, 0.0f, 0.0f},        {1.0f, 0.0f}));
-    laneHighlightButton->addVertex(Vertex({laneWidth, 0.0f, trackHeight}, {1.0f, 1.0f}));
-    laneHighlightButton->addVertex(Vertex({0.0f,      0.0f, 0.0f},        {0.0f, 0.0f}));
-    laneHighlightButton->addVertex(Vertex({laneWidth, 0.0f, trackHeight}, {1.0f, 1.0f}));
-    laneHighlightButton->addVertex(Vertex({0.0f,      0.0f, trackHeight}, {0.0f, 1.0f}));
+    laneHighlightButton->addVertex(Vertex({0.0f,      0.0f, 0.0f},        {0.0f, 1.0f}));
+    laneHighlightButton->addVertex(Vertex({laneWidth, 0.0f, 0.0f},        {1.0f, 1.0f}));
+    laneHighlightButton->addVertex(Vertex({laneWidth, 0.0f, trackHeight}, {1.0f, 0.0f}));
+    laneHighlightButton->addVertex(Vertex({0.0f,      0.0f, 0.0f},        {0.0f, 1.0f}));
+    laneHighlightButton->addVertex(Vertex({laneWidth, 0.0f, trackHeight}, {1.0f, 0.0f}));
+    laneHighlightButton->addVertex(Vertex({0.0f,      0.0f, trackHeight}, {0.0f, 0.0f}));
     laneHighlightButton->buildModel();
+    laneHighlightButton->setTexture(laneHighlightButtonTexture);
 
     laneHighlightFX = new Model();
-    laneHighlightFX->addVertex(Vertex({0.0f,             0.0f, 0.0f},        {0.0f, 0.0f}));
-    laneHighlightFX->addVertex(Vertex({laneWidth * 2.0f, 0.0f, 0.0f},        {1.0f, 0.0f}));
-    laneHighlightFX->addVertex(Vertex({laneWidth * 2.0f, 0.0f, trackHeight}, {1.0f, 1.0f}));
-    laneHighlightFX->addVertex(Vertex({0.0f,             0.0f, 0.0f},        {0.0f, 0.0f}));
-    laneHighlightFX->addVertex(Vertex({laneWidth * 2.0f, 0.0f, trackHeight}, {1.0f, 1.0f}));
-    laneHighlightFX->addVertex(Vertex({0.0f,             0.0f, trackHeight}, {0.0f, 1.0f}));
+    laneHighlightFX->addVertex(Vertex({0.0f,             0.0f, 0.0f},        {0.0f, 1.0f}));
+    laneHighlightFX->addVertex(Vertex({laneWidth * 2.0f, 0.0f, 0.0f},        {1.0f, 1.0f}));
+    laneHighlightFX->addVertex(Vertex({laneWidth * 2.0f, 0.0f, trackHeight}, {1.0f, 0.0f}));
+    laneHighlightFX->addVertex(Vertex({0.0f,             0.0f, 0.0f},        {0.0f, 1.0f}));
+    laneHighlightFX->addVertex(Vertex({laneWidth * 2.0f, 0.0f, trackHeight}, {1.0f, 0.0f}));
+    laneHighlightFX->addVertex(Vertex({0.0f,             0.0f, trackHeight}, {0.0f, 0.0f}));
     laneHighlightFX->buildModel();
+    laneHighlightFX->setTexture(laneHighlightFXTexture);
 
     i = 1;
     laneHighlights.laneA = new Object();
     laneHighlights.laneA->model = laneHighlightButton;
     laneHighlights.laneA->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * (float)i), laneHighlightHeight, -(trackHeight)));
     laneHighlights.laneA->setVisibility(false);
+    laneHighlights.laneA->setColor(colorNoHit);
     addObject(laneHighlights.laneA);
 
     i += 1;
@@ -182,6 +168,7 @@ void SceneGameplay::buildTrack() {
     laneHighlights.laneB->model = laneHighlightButton;
     laneHighlights.laneB->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * (float)i), laneHighlightHeight, -(trackHeight)));
     laneHighlights.laneB->setVisibility(false);
+    laneHighlights.laneB->setColor(colorNoHit);
     addObject(laneHighlights.laneB);
 
     i += 1;
@@ -189,6 +176,7 @@ void SceneGameplay::buildTrack() {
     laneHighlights.laneC->model = laneHighlightButton;
     laneHighlights.laneC->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * (float)i), laneHighlightHeight, -(trackHeight)));
     laneHighlights.laneC->setVisibility(false);
+    laneHighlights.laneC->setColor(colorNoHit);
     addObject(laneHighlights.laneC);
 
     i += 1;
@@ -196,6 +184,7 @@ void SceneGameplay::buildTrack() {
     laneHighlights.laneD->model = laneHighlightButton;
     laneHighlights.laneD->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * (float)i), laneHighlightHeight, -(trackHeight)));
     laneHighlights.laneD->setVisibility(false);
+    laneHighlights.laneD->setColor(colorNoHit);
     addObject(laneHighlights.laneD);
 
     i = 0;
@@ -203,6 +192,7 @@ void SceneGameplay::buildTrack() {
     laneHighlights.laneFXL->model = laneHighlightFX;
     laneHighlights.laneFXL->setPosition(glm::vec3(-(trackWidth / 2.0f) + laneWidth + (laneWidth * (float)i * 2.0f), laneHighlightHeight, -(trackHeight)));
     laneHighlights.laneFXL->setVisibility(false);
+    laneHighlights.laneFXL->setColor(colorNoHit);
     addObject(laneHighlights.laneFXL);
 
     i += 1;
@@ -210,197 +200,164 @@ void SceneGameplay::buildTrack() {
     laneHighlights.laneFXR->model = laneHighlightFX;
     laneHighlights.laneFXR->setPosition(glm::vec3(-(trackWidth / 2.0f) + laneWidth + (laneWidth * (float)i * 2.0f), laneHighlightHeight, -(trackHeight)));
     laneHighlights.laneFXR->setVisibility(false);
+    laneHighlights.laneFXR->setColor(colorNoHit);
     addObject(laneHighlights.laneFXR);
 
-    laneHighlightATimer = 0;
-    laneHighlightBTimer = 0;
-    laneHighlightCTimer = 0;
-    laneHighlightDTimer = 0;
-    laneHighlightFXLTimer = 0;
-    laneHighlightFXRTimer = 0;
+    measureDivider = new Model();
+    measureDivider->addVertex(Vertex({0.0f,             0.0f, -0.2f}, {0.0f, 0.0f}));
+    measureDivider->addVertex(Vertex({laneWidth * 4.0f, 0.0f, -0.2f}, {0.0f, 1.0f}));
+    measureDivider->addVertex(Vertex({laneWidth * 4.0f, 0.0f,  0.2f}, {1.0f, 1.0f}));
+    measureDivider->addVertex(Vertex({0.0f,             0.0f, -0.2f}, {0.0f, 0.0f}));
+    measureDivider->addVertex(Vertex({laneWidth * 4.0f, 0.0f,  0.2f}, {1.0f, 1.0f}));
+    measureDivider->addVertex(Vertex({0.0f,             0.0f,  0.2f}, {0.0f, 1.0f}));
+    measureDivider->buildModel();
+    measureDivider->setTexture(measureDividerTexture);
 
-    buttonADebounce = 0;
-    buttonBDebounce = 0;
-    buttonCDebounce = 0;
-    buttonDDebounce = 0;
-    buttonFXLDebounce = 0;
-    buttonFXRDebounce = 0;
+    buttonChip = new Model();
+    buttonChip->addVertex(Vertex({0.0f,      0.0f, -buttonChipHeight}, {0.0f, 0.0f}));
+    buttonChip->addVertex(Vertex({laneWidth, 0.0f, -buttonChipHeight}, {1.0f, 0.0f}));
+    buttonChip->addVertex(Vertex({laneWidth, 0.0f, 0.0f},              {1.0f, 1.0f}));
+    buttonChip->addVertex(Vertex({0.0f,      0.0f, -buttonChipHeight}, {0.0f, 0.0f}));
+    buttonChip->addVertex(Vertex({laneWidth, 0.0f, 0.0f},              {1.0f, 1.0f}));
+    buttonChip->addVertex(Vertex({0.0f,      0.0f, 0.0f},              {0.0f, 1.0f}));
+    buttonChip->buildModel();
+    buttonChip->setTexture(buttonChipTexture);
 
+    fxChip = new Model();
+    fxChip->addVertex(Vertex({0.0f,             0.0f, -buttonChipHeight}, {0.0f, 0.0f}));
+    fxChip->addVertex(Vertex({laneWidth * 2.0f, 0.0f, -buttonChipHeight}, {1.0f, 0.0f}));
+    fxChip->addVertex(Vertex({laneWidth * 2.0f, 0.0f, 0.0f},              {1.0f, 1.0f}));
+    fxChip->addVertex(Vertex({0.0f,             0.0f, -buttonChipHeight}, {0.0f, 0.0f}));
+    fxChip->addVertex(Vertex({laneWidth * 2.0f, 0.0f, 0.0f},              {1.0f, 1.0f}));
+    fxChip->addVertex(Vertex({0.0f,             0.0f, 0.0f},              {0.0f, 1.0f}));
+    fxChip->buildModel();
+    fxChip->setTexture(fxChipTexture);
 }
 
 void SceneGameplay::buildNotes(ChartData* data) {
-    // currently a quick attempt at getting notes on the screen
-    // SHOULD be optimized later to just reuse a few models and redraw it on different positions
-    float currentPosition = -basePosition;
-    const float defaultMeasureWidth = (trackHeight / 4.0f) * laneSpeed;
-    /*for (auto& measure : data->measures) {
-        float beatHeight = defaultMeasureWidth / measure->beats.size();
+    const unsigned int tempoNumerator = 4;
+    const unsigned int tempoDenominator = 4;
+
+    double currentTime = (double)songPlaybackDelayTimerMax;
+    float defaultMeasureWidth = (trackHeight / 4.0f) * laneSpeed;
+    float currentDrawScroll = -defaultMeasureWidth * 2.0f;
+
+    float currentBPM = (float)atof(data->metadata.find("t")->second.c_str());
+    BPM = currentBPM;
+
+    for (auto& measure : data->measures) {
+        Object* divider = new Object();
+        divider->model = measureDivider;
+        divider->setPosition(glm::vec3(-laneWidth * 2.0f, measureDividerHeight, currentDrawScroll));
+        divider->setScrollability(true);
+        addObject(divider);
+        
+        float beatSpacing = defaultMeasureWidth / (float)measure->beats.size();
+
+        const float measureTime = ((float)tempoNumerator) / (currentBPM / 60.0f);
+        const float beatTime = (measureTime / (float)measure->beats.size());
+        unsigned int beatNum = 0;
         for (auto& beat : measure->beats) {
             if (beat->A == NoteType::Chip) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, 0.0f},             {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, buttonChipHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(buttonChipTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 1), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
-            } else if (beat->A == NoteType::Hold) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},      {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, 0.0f},      {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},      {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, beatHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(buttonLongTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 1), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
+                Object* noteObject = new Object();
+                noteObject->model = buttonChip;
+                noteObject->setPosition(glm::vec3((-trackWidth / 2.0f) + (laneWidth * 1.0f), buttonChipHeightPos, currentDrawScroll));
+                noteObject->setScrollability(true);
+                addObject(noteObject);
+
+                NoteData* note = new NoteData();
+                note->type = NoteType::Chip;
+                note->expectedTime = currentTime;
+                note->hitTime = 0;
+                note->hitPass = false;
+                note->lane = NoteData::LaneType::LaneA;
+                note->noteObject = noteObject;
+                gameplayData.notes.push_back(note);
             }
             if (beat->B == NoteType::Chip) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, 0.0f},             {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, buttonChipHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(buttonChipTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 2), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
-            } else if (beat->B == NoteType::Hold) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},      {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, 0.0f},      {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},      {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, beatHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(buttonLongTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 2), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
+                Object* noteObject = new Object();
+                noteObject->model = buttonChip;
+                noteObject->setPosition(glm::vec3((-trackWidth / 2.0f) + (laneWidth * 2.0f), buttonChipHeightPos, currentDrawScroll));
+                noteObject->setScrollability(true);
+                addObject(noteObject);
+
+                NoteData* note = new NoteData();
+                note->type = NoteType::Chip;
+                note->expectedTime = currentTime;
+                note->hitTime = 0;
+                note->hitPass = false;
+                note->lane = NoteData::LaneType::LaneB;
+                note->noteObject = noteObject;
+                gameplayData.notes.push_back(note);
             }
             if (beat->C == NoteType::Chip) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, 0.0f},             {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, buttonChipHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(buttonChipTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 3), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
-            } else if (beat->C == NoteType::Hold) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},      {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, 0.0f},      {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},      {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, beatHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(buttonLongTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 3), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
+                Object* noteObject = new Object();
+                noteObject->model = buttonChip;
+                noteObject->setPosition(glm::vec3((-trackWidth / 2.0f) + (laneWidth * 3.0f), buttonChipHeightPos, currentDrawScroll));
+                noteObject->setScrollability(true);
+                addObject(noteObject);
+                
+                NoteData* note = new NoteData();
+                note->type = NoteType::Chip;
+                note->expectedTime = currentTime;
+                note->hitTime = 0;
+                note->hitPass = false;
+                note->lane = NoteData::LaneType::LaneC;
+                note->noteObject = noteObject;
+                gameplayData.notes.push_back(note);
             }
             if (beat->D == NoteType::Chip) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, 0.0f},             {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, buttonChipHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(buttonChipTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 4), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
-            } else if (beat->D == NoteType::Hold) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},      {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, 0.0f},      {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},      {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, beatHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(buttonLongTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 4), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
+                Object* noteObject = new Object();
+                noteObject->model = buttonChip;
+                noteObject->setPosition(glm::vec3((-trackWidth / 2.0f) + (laneWidth * 4.0f), buttonChipHeightPos, currentDrawScroll));
+                noteObject->setScrollability(true);
+                addObject(noteObject);
+
+                NoteData* note = new NoteData();
+                note->type = NoteType::Chip;
+                note->expectedTime = currentTime;
+                note->hitTime = 0;
+                note->hitPass = false;
+                note->lane = NoteData::LaneType::LaneD;
+                note->noteObject = noteObject;
+                gameplayData.notes.push_back(note);
             }
             if (beat->FXL == NoteType::Chip) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, 0.0f},             {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, buttonChipHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(fxChipTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 1), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
-            } else if (beat->FXL == NoteType::Hold) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, 0.0f},             {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, beatHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(fxLongTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 1), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
+                Object* noteObject = new Object();
+                noteObject->model = fxChip;
+                noteObject->setPosition(glm::vec3((-trackWidth / 2.0f) + (laneWidth * 1.0f), fxChipHeightPos, currentDrawScroll));
+                noteObject->setScrollability(true);
+                addObject(noteObject);
+
+                NoteData* note = new NoteData();
+                note->type = NoteType::Chip;
+                note->expectedTime = currentTime;
+                note->hitTime = 0;
+                note->hitPass = false;
+                note->lane = NoteData::LaneType::LaneFXL;
+                note->noteObject = noteObject;
+                gameplayData.notes.push_back(note);
             }
             if (beat->FXR == NoteType::Chip) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, 0.0f},             {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, buttonChipHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, buttonChipHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(fxChipTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 3), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
-            } else if (beat->FXR == NoteType::Hold) {
-                Model* noteModel = new Model();
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, 0.0f},             {1.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, 0.0f},             {0.0f, 0.0f}));
-                noteModel->addVertex(Vertex({laneWidth * 2.0f, 0.0f, beatHeight}, {1.0f, 1.0f}));
-                noteModel->addVertex(Vertex({0.0f,      0.0f, beatHeight}, {0.0f, 1.0f}));
-                noteModel->buildModel();
-                noteModel->setTexture(fxLongTexture);
-                noteModel->setPosition(glm::vec3(-(trackWidth / 2.0f) + (laneWidth * 3), buttonChipHeightPos, currentPosition));
-                Renderer::addRenderable(noteModel);
-                noteList.push_back(noteModel);
+                Object* noteObject = new Object();
+                noteObject->model = fxChip;
+                noteObject->setPosition(glm::vec3((-trackWidth / 2.0f) + (laneWidth * 3.0f), fxChipHeightPos, currentDrawScroll));
+                noteObject->setScrollability(true);
+                addObject(noteObject);
+
+                NoteData* note = new NoteData();
+                note->type = NoteType::Chip;
+                note->expectedTime = currentTime;
+                note->hitTime = 0;
+                note->hitPass = false;
+                note->lane = NoteData::LaneType::LaneFXR;
+                note->noteObject = noteObject;
+                gameplayData.notes.push_back(note);
             }
-            currentPosition -= beatHeight;
+            currentDrawScroll -= beatSpacing;
+            currentTime += beatTime * 1000.0;
         }
-    }*/
+    }
 }
 
 void SceneGameplay::buildButtonDisplay() {
@@ -566,11 +523,11 @@ void SceneGameplay::buildInterface() {
     lifeMeter->setSize(lifeMeterSize);
     lifeMeter->setPosition(glm::ivec2(windowResolution.x - 200, windowResolution.y - (lifeMeterSize.y)) - (lifeMeterSize.y / 4));
     lifeMeter->setTexture(lifeMeterTexture);
-    addInterface(lifeMeter);
+    //addInterface(lifeMeter);
 
     buildButtonDisplay();
     buildJudgmentDisplay(windowResolution);
-    buildJudgmentCounters(windowResolution);
+    //buildJudgmentCounters(windowResolution);
 
     fadeIn = new UIElement();
     fadeIn->setSize(windowResolution);
@@ -580,16 +537,92 @@ void SceneGameplay::buildInterface() {
     addInterface(fadeIn);
 }
 
+void SceneGameplay::initialize() {
+    buttonDisplayElements = {};
+    trackLaneObjects = {};
+
+    currentStage = GameplaySequence::FadeIn;
+    fadeInTimer = fadeInTimerMax;
+    loadedIntersticeTimer = loadedIntersticeTimerMax;
+    runTimer = 0;
+
+    laneHighlightATimer = 0;
+    laneHighlightBTimer = 0;
+    laneHighlightCTimer = 0;
+    laneHighlightDTimer = 0;
+    laneHighlightFXLTimer = 0;
+    laneHighlightFXRTimer = 0;
+
+    buttonADebounce = 0;
+    buttonBDebounce = 0;
+    buttonCDebounce = 0;
+    buttonDDebounce = 0;
+    buttonFXLDebounce = 0;
+    buttonFXRDebounce = 0;
+
+    hitDelta = 0;
+    score = 0;
+    previousScore = 0;
+    exscore = 0;
+    BPM = 120.0f;
+    laneSpeed = 5.0f;
+    basePosition = 0.0f;
+    scrollPosition = 0.0f;
+    scoreIncrement = 0.0;
+
+    Logging::info("Gameplay: Initializing gameplay data.");
+
+    judgmentData = {};
+
+    Logging::info("Gameplay: Initializing sounds.");
+
+    bgmSource = new AudioSource();
+    autoClickButton = new AudioSource();
+    unsigned int clickButtonBuffer = Audio::loadFile("./data/sound/click.wav");
+    autoClickButton->attachBuffer(clickButtonBuffer);
+
+    autoClickFX = new AudioSource();
+    autoClickFX->attachBuffer(clickButtonBuffer);
+}
+
 SceneGameplay::SceneGameplay() {
-    std::optional<ChartData*> data = ChartReader::readFromFile("./songs/test/absurd_gaff_metalize_mxm.ksh");
+    Logging::info("Gameplay: Initializing.");
+    initialize();
+
+    Logging::info("Gameplay: Loading chart.");
+    std::optional<ChartData*> data = ChartReader::readFromFile("./songs/test/test.ksh");
+
+    Logging::info("Gameplay: Loading song.");
+    unsigned int bgmBuffer = Audio::loadFile("./songs/test/mxm.ogg");
+    bgmSource->attachBuffer(bgmBuffer);
+
+    Logging::info("Gameplay: Building base gameplay objects.");
+
     buildTrack();
+
+    Logging::info("Gameplay: Building notes and chart data.");
     buildNotes(data.value_or(new ChartData()));
+
+    Logging::info("Gameplay: Building interface.");
     buildInterface();
     
     Camera::setPosition(glm::vec3(0.0f, 15.0f, 25.0f));
     Camera::lookAt(glm::vec3(0.0f, 0.0f, -20.0f));
 
     fadeInTimer = fadeInTimerMax;
+
+    GameplayOptions = {
+        .ArrangementOptions = GameplayOptions::ArrangementOptions::Default,
+        .PlayOptions = {
+            .autoPlay = false,
+            .autoRetry = false,
+            .autoFailObjective = GameplayOptions::PlayOptions::AutoFailOptions::None,
+        },
+    };
+
+    scoreIncrement = 10000000.0f / ((float)gameplayData.notes.size() * 2.0f);
+
+    Logging::info("Gameplay: Initialized.");
 }
 
 void SceneGameplay::updateInputDisplay(InputState state) {
@@ -625,60 +658,85 @@ void SceneGameplay::updateInputDisplay(InputState state) {
     }
 }
 
-void SceneGameplay::tickDownTimers(unsigned int tickDelta) {
-    if (laneHighlightATimer > tickDelta) {
-        laneHighlightATimer -= tickDelta;
+void SceneGameplay::tickDownTimers(float deltaTime) {
+    if (laneHighlightATimer > deltaTime) {
+        laneHighlightATimer -= deltaTime;
     } else {
         laneHighlightATimer = 0;
     }
-    if (laneHighlightBTimer > tickDelta) {
-        laneHighlightBTimer -= tickDelta;
+    if (laneHighlightBTimer > deltaTime) {
+        laneHighlightBTimer -= deltaTime;
     } else {
         laneHighlightBTimer = 0;
     }
-    if (laneHighlightCTimer > tickDelta) {
-        laneHighlightCTimer -= tickDelta;
+    if (laneHighlightCTimer > deltaTime) {
+        laneHighlightCTimer -= deltaTime;
     } else {
         laneHighlightCTimer = 0;
     }
-    if (laneHighlightDTimer > tickDelta) {
-        laneHighlightDTimer -= tickDelta;
+    if (laneHighlightDTimer > deltaTime) {
+        laneHighlightDTimer -= deltaTime;
     } else {
         laneHighlightDTimer = 0;
     }
-    if (laneHighlightFXLTimer > tickDelta) {
-        laneHighlightFXLTimer -= tickDelta;
+    if (laneHighlightFXLTimer > deltaTime) {
+        laneHighlightFXLTimer -= deltaTime;
     } else {
         laneHighlightFXLTimer = 0;
     }
-    if (laneHighlightFXRTimer > tickDelta) {
-        laneHighlightFXRTimer -= tickDelta;
+    if (laneHighlightFXRTimer > deltaTime) {
+        laneHighlightFXRTimer -= deltaTime;
     } else {
         laneHighlightFXRTimer = 0;
     }
 
-    if (earlyIndicatorTimer > tickDelta) {
-        earlyIndicatorTimer -= tickDelta;
+    if (earlyIndicatorTimer > deltaTime) {
+        earlyIndicatorTimer -= deltaTime;
     } else {
         earlyIndicatorTimer = 0;
     }
 
-    if (lateIndicatorTimer > tickDelta) {
-        lateIndicatorTimer -= tickDelta;
+    if (lateIndicatorTimer > deltaTime) {
+        lateIndicatorTimer -= deltaTime;
     } else {
         lateIndicatorTimer = 0;
     }
 
-    if (hitDeltaDisplayTimer > tickDelta) {
-        hitDeltaDisplayTimer -= tickDelta;
+    if (hitDeltaDisplayTimer > deltaTime) {
+        hitDeltaDisplayTimer -= deltaTime;
     } else {
         hitDeltaDisplayTimer = 0;
     }
 
-    if (buttonADebounce > tickDelta) {
-        buttonADebounce -= tickDelta;
+    if (buttonADebounce > deltaTime) {
+        buttonADebounce -= deltaTime;
     } else {
         buttonADebounce = 0;
+    }
+    if (buttonBDebounce > deltaTime) {
+        buttonBDebounce -= deltaTime;
+    } else {
+        buttonBDebounce = 0;
+    }
+    if (buttonCDebounce > deltaTime) {
+        buttonCDebounce -= deltaTime;
+    } else {
+        buttonCDebounce = 0;
+    }
+    if (buttonDDebounce > deltaTime) {
+        buttonDDebounce -= deltaTime;
+    } else {
+        buttonDDebounce = 0;
+    }
+    if (buttonFXLDebounce > deltaTime) {
+        buttonFXLDebounce -= deltaTime;
+    } else {
+        buttonFXLDebounce = 0;
+    }
+    if (buttonFXRDebounce > deltaTime) {
+        buttonFXRDebounce -= deltaTime;
+    } else {
+        buttonFXRDebounce = 0;
     }
 }
 
@@ -702,11 +760,6 @@ void SceneGameplay::updateLaneHighlightVisibility(InputState state) {
         laneHighlights.laneFXR->setVisibility(false);
     }
 
-    if (state.bits.buttonA) {
-        laneHighlightATimer = 33;
-        laneHighlights.laneA->setVisibility(true);
-    }
-
     if (lateIndicatorTimer == 0) {
         lateDisplay->setVisibility(false);
     }
@@ -717,6 +770,10 @@ void SceneGameplay::updateLaneHighlightVisibility(InputState state) {
         hitDeltaDisplay->setVisibility(false);
     }
 
+    if (state.bits.buttonA) {
+        laneHighlightATimer = 33;
+        laneHighlights.laneA->setVisibility(true);
+    }
     if (state.bits.buttonB) {
         laneHighlightBTimer = 33;
         laneHighlights.laneB->setVisibility(true);
@@ -745,7 +802,8 @@ void SceneGameplay::updateScoreDisplay() {
         delete scoreTexture;
         scoreTexture = new Texture();
         char scoreChar[10] = {'\0'};
-        itoa(score, scoreChar, 10);
+        
+        itoa((int)score, scoreChar, 10);
         glm::ivec2 scoreSize = scoreTexture->setFontString(Renderer::defaultFont, scoreChar);
         scoreDisplay->setSize(scoreSize);
         scoreDisplay->setTexture(scoreTexture);
@@ -753,115 +811,194 @@ void SceneGameplay::updateScoreDisplay() {
     }
 }
 
-void SceneGameplay::scrollChart(unsigned int tickDelta) {
-    float scrollDistance = (tickDelta / 1000.0f) * scrollSpeed;
-    
-    /*for (auto& note : noteList) {
-        note->setPosition(note->getPosition() + glm::vec3(0.0f, 0.0f, scrollDistance));
-    }*/
+void SceneGameplay::scrollChart(float deltaTime) {
+    runTimer += deltaTime;
 
-    //buttonChip->setPosition(glm::vec3(-(trackWidth / 2.0f) + laneWidth, buttonChipHeightPos, progress));    
+    const float measureWidth = trackHeight / 4.0f * laneSpeed;
+    const float measureTime = BPM / 60.0f;
+    const float beatsPerFrame = (deltaTime * measureTime / 1000.0f);
+    const float beatWidth = measureWidth / 4.0f;
+
+    const float scrollDistance = beatsPerFrame * beatWidth;
+
+    scrollPosition += scrollDistance;
+
+    glm::mat4 scrollMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, scrollPosition));
+    Renderer::defaultShader->use();
+    Renderer::defaultShader->setMat4("uScroll", scrollMatrix);
 }
 
-void SceneGameplay::testHits() {
-    runTimer;
-    /*
-    // no hits
-    if (runTimer < (expectedTime - errorWindow) || runTimer > (expectedTime + errorWindow)) {
-        laneHighlights.laneA->setColor(colorNoHit);
-    } else {    
-        if (buttonADebounce == 0 && !handledButton) {
-            buttonADebounce += 8;
-            handledButton = true;
-            hitDelta = runTimer - expectedTime;
-            if (runTimer >= (expectedTime - scritWindow) && runTimer < (expectedTime + scritWindow)) {
-                laneHighlights.laneA->setColor(colorSCritHit);
-                exscore += 5;
-                score += 1000;
-                buttonChip->setVisibility(false);
-            } else if (runTimer >= (expectedTime - critWindow) && runTimer < (expectedTime + critWindow)) {
-                laneHighlights.laneA->setColor(colorCritHit);
-                exscore += 4;
-                score += 1000;
-                buttonChip->setVisibility(false);
-            } else if (runTimer >= (expectedTime - nearWindow) && runTimer < (expectedTime + nearWindow)) {
-                laneHighlights.laneA->setColor(colorNearHit);
-                exscore += 1;
-                score += 500;
-                buttonChip->setVisibility(false);
-            } else {
-                laneHighlights.laneA->setColor(colorErrorHit);
-            }
+void SceneGameplay::testHits(InputState state) {
+    struct {
+        bool buttonA = false;
+        bool buttonB = false;
+        bool buttonC = false;
+        bool buttonD = false;
+        bool buttonFXL = false;
+        bool buttonFXR = false;
+    } judgedButtons;
 
-            if (hitDeltaTexture) {
-                delete hitDeltaTexture;
+    unsigned int* buttonDebounce;
+    bool* button;
+    Object** laneHighlight;
+    bool* judgeButton;
+
+    unsigned int currentNote = 0;
+    for (auto& note : gameplayData.notes) {
+        currentNote++;
+        if (note->hitPass == true) {
+            continue;
+        }
+
+        if (runTimer < (note->expectedTime - errorWindow)) {
+            continue;
+        } else if (runTimer >= (note->expectedTime + errorWindow)) {
+            // note error for not hitting
+            note->hitPass = true;
+            judgmentData.chipNotes.lateErrors += 1;
+        } else {
+            // test for hit during the active judgment windows
+            switch (note->lane) {
+                case NoteData::LaneType::LaneA:
+                    buttonDebounce = &buttonADebounce;
+                    button = &state.bits.buttonA;
+                    laneHighlight = &laneHighlights.laneA;
+                    judgeButton = &judgedButtons.buttonA;
+                    break;
+                case NoteData::LaneType::LaneB:
+                    buttonDebounce = &buttonBDebounce;
+                    button = &state.bits.buttonB;
+                    laneHighlight = &laneHighlights.laneB;
+                    judgeButton = &judgedButtons.buttonB;
+                    break;
+                case NoteData::LaneType::LaneC:
+                    buttonDebounce = &buttonCDebounce;
+                    button = &state.bits.buttonC;
+                    laneHighlight = &laneHighlights.laneC;
+                    judgeButton = &judgedButtons.buttonC;
+                    break;
+                case NoteData::LaneType::LaneD:
+                    buttonDebounce = &buttonDDebounce;
+                    button = &state.bits.buttonD;
+                    laneHighlight = &laneHighlights.laneD;
+                    judgeButton = &judgedButtons.buttonD;
+                    break;
+                case NoteData::LaneType::LaneFXL:
+                    buttonDebounce = &buttonFXLDebounce;
+                    button = &state.bits.buttonFXL;
+                    laneHighlight = &laneHighlights.laneFXL;
+                    judgeButton = &judgedButtons.buttonFXL;
+                    break;
+                case NoteData::LaneType::LaneFXR:
+                    buttonDebounce = &buttonFXRDebounce;
+                    button = &state.bits.buttonFXR;
+                    laneHighlight = &laneHighlights.laneFXR;
+                    judgeButton = &judgedButtons.buttonFXR;
+                    break;
+                default:
+                    continue;
             }
-            std::stringstream ss;
-            char positive = ' ';
-            if (hitDelta >= 0) {
-                positive = '+';
-            }
-            ss << positive << hitDelta << "ms";
-            hitDeltaTexture = new Texture();
-            glm::ivec2 hitDeltaTextureSize = hitDeltaTexture->setFontString(Renderer::defaultFont, ss.str());
-            hitDeltaDisplay->setTexture(hitDeltaTexture);
-            hitDeltaDisplay->setSize(hitDeltaTextureSize);
-            hitDeltaDisplay->setPosition(glm::ivec2((Renderer::getCurrentResolution().x / 2) + (hitDeltaTextureSize.x / 2), (Renderer::getCurrentResolution().y / 2) - (hitDeltaTextureSize.y / 2)));
-            hitDeltaDisplay->setVisibility(true);
-            hitDeltaDisplayTimer = 33 * 40;
-            if (hitDelta > 0) {
-                lateDisplay->setVisibility(true);
-                lateIndicatorTimer = 33 * 40;
-                hitDeltaDisplay->setColor(colorLate);
+            if (*buttonDebounce > 0) continue;
+            if (!*button) continue;
+            if (*judgeButton) continue;
+
+            note->hitPass = true;
+            note->hitTime = runTimer;
+            float hitDelta = note->hitTime - note->expectedTime;
+            *buttonDebounce = buttonDebounceMax;
+            *judgeButton = true;
+
+            if (note->hitTime > (note->expectedTime - scritWindow) && note->hitTime <= (note->expectedTime + scritWindow)) {
+                note->noteObject->setVisibility(false);
+                (*laneHighlight)->setColor(colorSCritHit);
+                judgmentData.chipNotes.scrits += 1;
+                score += (scoreIncrement * 2.0);
+                autoClickButton->play();
+            } else if (note->hitTime > (note->expectedTime - critWindow) && note->hitTime <= (note->expectedTime + critWindow)) {
+                note->noteObject->setVisibility(false);
+                (*laneHighlight)->setColor(colorCritHit);
+                if (hitDelta >= 0.0) {
+                    judgmentData.chipNotes.lateCrits += 1;
+                } else {
+                    judgmentData.chipNotes.earlyCrits += 1;
+                }
+                score += (scoreIncrement * 2.0);
+                autoClickButton->play();
+            } else if (note->hitTime > (note->expectedTime - nearWindow) && note->hitTime <= (note->expectedTime + nearWindow)) {
+                note->noteObject->setVisibility(false);
+                (*laneHighlight)->setColor(colorNearHit);
+                if (hitDelta >= 0.0) {
+                    judgmentData.chipNotes.lateNears += 1; 
+                } else {
+                    judgmentData.chipNotes.earlyNears += 1;
+                }
+                score += scoreIncrement;
+                autoClickButton->play();
             } else {
-                earlyDisplay->setVisibility(true);
-                earlyIndicatorTimer = 33 * 40;
-                hitDeltaDisplay->setColor(colorEarly);
+                note->noteObject->setVisibility(false);
+                (*laneHighlight)->setColor(colorNoHit);
+                if (hitDelta >= 0.0) {
+                    judgmentData.chipNotes.lateErrors += 1;
+                } else {
+                    judgmentData.chipNotes.earlyErrors += 1;
+                }
             }
-        }   
+        }
     }
-    */
 }
 
-void SceneGameplay::update(unsigned int tickDelta) {
-    runTimer += tickDelta;
+void SceneGameplay::autoHit() {
+
+}
+
+void SceneGameplay::update(float deltaTime) {
     InputState state = Input::getState();
     updateInputDisplay(state);
     updateLaneHighlightVisibility(state);
-    tickDownTimers(tickDelta);
+    tickDownTimers(deltaTime);
 
     switch (currentStage) {
-        case GameplaySequence::FadeIn:{
-            if (fadeInTimer > tickDelta) {
-                fadeInTimer -= tickDelta;
+        case GameplaySequence::FadeIn: {
+            if (fadeInTimer > deltaTime) {
+                fadeInTimer -= deltaTime;
             } else {
                 fadeInTimer = 0;
             }
 
-            fadeIn->setColor(glm::vec4(0.0f, 0.0f, 0.0f, (float)(fadeInTimer) / (float)(fadeInTimerMax)));
+            fadeIn->setColor(glm::vec4(0.0f, 0.0f, 0.0f, glm::clamp((float)(fadeInTimer) / (float)(fadeInTimerMax), 0.0f, 1.0f)));
 
-            if (fadeInTimer == 0) {
+            if (fadeInTimer <= 0) {
+                currentStage = GameplaySequence::Loaded;
+                loadedIntersticeTimer = loadedIntersticeTimerMax;
+            }
+            break;
+        }
+        case GameplaySequence::Loaded: {
+            if (state.bits.buttonStart == false) { // let the player adjust settings before the song starts by holding START between three seconds
+                if (loadedIntersticeTimer > deltaTime) {
+                    loadedIntersticeTimer -= deltaTime;
+                } else {
+                    loadedIntersticeTimer = 0;
+                }
+            }
+
+            if (loadedIntersticeTimer <= 0) {
                 currentStage = GameplaySequence::Playing;
             }
             break;
         }
         case GameplaySequence::Playing: {
-            scrollChart(tickDelta);
-            testHits();
+            if (runTimer >= 2000.0) {
+                bgmSource->play();
+            }
+            scrollChart(deltaTime);
+            testHits(state);
+            updateScoreDisplay();
             break;
         }
         case GameplaySequence::FadeOut:
         break;
     }
-
-    /*
-    updateScoreDisplay();
-
-    if (runTimer >= expectedTime * 2) {
-        runTimer -= expectedTime * 2;
-        buttonChip->setVisibility(true);
-    } 
-    */
 }
 
 void SceneGameplay::draw() {

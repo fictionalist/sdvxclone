@@ -6,11 +6,13 @@
 
 #include "Scene.hpp"
 #include "ChartReader.hpp"
+#include "AudioSource.hpp"
 
 class SceneGameplay : public Scene {
 private:
     enum class GameplaySequence {
         FadeIn,
+        Loaded,
         Playing,
         FadeOut
     };
@@ -36,9 +38,78 @@ private:
         } volumeNotes;
     } judgmentData;
 
-    GameplaySequence currentStage = GameplaySequence::FadeIn;
+    struct NoteData {
+        NoteType type;
+        enum class LaneType {
+            LaneA,
+            LaneB,
+            LaneC,
+            LaneD,
+            LaneFXL,
+            LaneFXR,
+            LaserL,
+            LaserR
+        } lane;
+        float expectedTime;
+        float hitTime;
+        bool hitPass;
+        Object* noteObject;
+    };
+
+    struct GameplayOptions {
+        enum class ArrangementOptions {
+            Default,
+            Mirror,
+            Random,
+            MirrorRandom,
+            SRandom,
+        } ArrangementOptions;
+
+        struct laneArrangement {
+            
+        };
+
+        struct PlayOptions {
+            bool autoPlay;
+            bool autoRetry;
+            enum class AutoFailOptions {
+                None,
+                AAPlus,
+                AAA,
+                AAAPlus,
+                S,
+                UC,
+                PUC,
+            } autoFailObjective;
+        } PlayOptions;
+    } GameplayOptions;
+
+    struct {
+        std::vector<NoteData*> notes;
+    } gameplayData;
+
+    GameplaySequence currentStage;
 
     // gameplay objects construction
+
+    AudioSource* bgmSource;
+    AudioSource* autoClickButton;
+    AudioSource* autoClickFX;
+
+    const float trackWidth = 12.0f;
+    const float trackHeight = 60.0f;
+    const float laneHighlightHeight = -3.995;
+    const float measureDividerHeight = -3.9995;
+
+    const uint8_t lanes = 6;
+    const uint8_t buttonLanes = 4;
+    const uint8_t fxLanes = 2;
+
+    const float laneWidth = trackWidth / ((float)lanes);
+    const float buttonChipHeight = trackHeight / 40.0f;
+    const float buttonChipHeightPos = -3.9f;
+    const float fxChipHeightPos = -3.95f;
+
     struct LaneObjects {
         Object* laneVolL;
         Object* laneA;
@@ -59,8 +130,9 @@ private:
         Object* laneFXR;
     } laneHighlights;
     Model* laneHighlightButton, *laneHighlightFX;
+    Texture* laneHighlightButtonTexture, *laneHighlightFXTexture;
 
-    Model* buttonChip, *buttonChipKeysound, *buttonLong, *fxChip, *fxChipKeysound, *fxLong;
+    Model* measureDivider, *buttonChip, *buttonChipKeysound, *buttonLong, *fxChip, *fxChipKeysound, *fxLong;
     Texture *measureDividerTexture, *buttonChipTexture, *buttonChipKeysoundTexture, *buttonLongTexture, *fxChipTexture, *fxChipKeysoundTexture, *fxLongTexture;
 
     std::vector<Object*> noteList;
@@ -89,7 +161,7 @@ private:
     UIElement* judgmentDisplayCounter, *judgmentErrorCounter, *judgmentNearCounter, *judgmentCritCounter;
 
     UIElement* fadeIn;
-    unsigned int fadeInTimer;
+    int fadeInTimer;
     const unsigned int fadeInTimerMax = 1000;
 
     void buildButtonDisplay();
@@ -98,7 +170,12 @@ private:
     void buildInterface();
 
     // gameplay timers
-    uint64_t runTimer;
+    int loadedIntersticeTimer;
+    const unsigned int loadedIntersticeTimerMax = 3000;
+    const unsigned int buttonDebounceMax = 4;
+    double runTimer;
+    unsigned int songPlaybackDelayTimer;
+    const unsigned int songPlaybackDelayTimerMax = 2000;
     unsigned int laneHighlightATimer;
     unsigned int laneHighlightBTimer;
     unsigned int laneHighlightCTimer;
@@ -120,23 +197,27 @@ private:
     // gameplay variables
 
     int hitDelta;
-    unsigned int score;
-    unsigned int previousScore;
+    float score;
+    float previousScore;
+    float scoreIncrement;
     unsigned int exscore;
     float BPM;
     float laneSpeed;
     float basePosition;
     float scrollSpeed;
+    float scrollPosition;
 
-    void tickDownTimers(unsigned int tickDelta);
+    void initialize();
+    void tickDownTimers(float deltaTime);
     void updateLaneHighlightVisibility(InputState);
     void updateInputDisplay(InputState);
     void updateScoreDisplay();
-    void scrollChart(unsigned int tickDelta);
-    void testHits();
+    void scrollChart(float deltaTime);
+    void testHits(InputState);
+    void autoHit();
 
 public:
     SceneGameplay();
-    void update(unsigned int tickDelta);
+    void update(float deltaTime);
     void draw();
 };

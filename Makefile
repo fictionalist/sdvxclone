@@ -34,7 +34,8 @@ INCDIRS := $(shell $(FIND) $(SRC_DIR) -type d) \
 		   $(LIB_DIR)/stb_image \
 		   $(LIB_DIR)/json-3.11.3 \
 		   $(LIB_DIR)/lua-5.4.6/src \
-		   $(LIB_DIR)/openal-1.1/include
+		   $(LIB_DIR)/openal-1.1/include \
+		   $(LIB_DIR)/libsndfile-1.2.2-win64/include
 
 INCFLAGS := $(addprefix -I,$(INCDIRS))
 
@@ -42,9 +43,10 @@ LINKDIRS := $(LIB_DIR)/glew-2.2.0/lib/Release/x64 \
 			$(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/lib \
 			$(LIB_DIR)/freetype-2.13.2/builds/windows/mingw \
 			$(LIB_DIR)/lua-5.4.6/lib \
-			$(LIB_DIR)/openal-1.1/libs/Win64
+			$(LIB_DIR)/openal-1.1/libs/Win64 \
+			$(LIB_DIR)/libsndfile-1.2.2-win64/lib
 
-LINKLIBS := glew32 libSDL2 opengl32 freetype lua OpenAL32
+LINKLIBS := glew32 libSDL2 opengl32 freetype lua OpenAL32 sndfile
 LINKFLAGS := $(addprefix -L,$(LINKDIRS)) $(addprefix -l,$(LINKLIBS))
 
 CFLAGS := -std=c23 -O2 -g3
@@ -74,6 +76,7 @@ $(PROGRAM_NAME): $(OBJ_FILES) | $(OUT_DIR)
 	@-$(CP) $(LIB_DIR)/SDL2-2.30.2/x86_64-w64-mingw32/bin/SDL2.dll $(OUT_DIR)
 	@-$(CP) $(LIB_DIR)/glew-2.2.0/bin/Release/x64/glew32.dll $(OUT_DIR)
 	@-$(CP) $(MSYS64)/ucrt64/bin/libstdc++-6.dll $(OUT_DIR)
+	@-$(CP) $(LIB_DIR)/libsndfile-1.2.2-win64/bin/sndfile.dll $(OUT_DIR)
 	@echo Build finished.
 
 $(BUILD_DIR)/%.c.o: $(SRC_DIR)/%.c | $(BUILD_DIR)

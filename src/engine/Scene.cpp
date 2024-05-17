@@ -34,7 +34,7 @@ void Scene::addObject(Object* o) {
     objectList.push_back(o);
 }
 
-void Scene::update(unsigned int deltaTime) {
+void Scene::update(float deltaTime) {
 }
 
 void Scene::draw() {

@@ -11,10 +11,12 @@ Model::Model() {
     init();
 }
 
-void Model::draw(Shader* shader, Texture* texture) {
+void Model::draw(Shader* shader, Texture* passedTexture) {
     if (VBO == 0) return;
     
-    if (texture != nullptr) {
+    if (passedTexture != nullptr) {
+        passedTexture->bindTexture(shader);
+    } else if (texture != nullptr) {
         texture->bindTexture(shader);
     } else {
         Texture::unbind(shader);

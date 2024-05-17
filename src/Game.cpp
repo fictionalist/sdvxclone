@@ -62,8 +62,6 @@ bool Game::init() {
             glm::ivec2 tempResolution = resolution;
             tempResolution.x = atoi(resolutionString.substr(0, position).c_str());
             tempResolution.y = atoi(resolutionString.substr(position + 1).c_str());
-
-            printf("%d x %d\n", tempResolution.x, tempResolution.y);
             resolution = tempResolution;
         }
     }
@@ -73,13 +71,13 @@ bool Game::init() {
 
     if (windowModeString.compare("windowed") == 0) {
         windowMode = 0;
-    } else if (windowModeString.compare("fullscreen")) {
+    } else if (windowModeString.compare("fullscreen") == 0) {
         windowMode = SDL_WINDOW_FULLSCREEN_DESKTOP;
-    } else if (windowModeString.compare("borderless")) {
+    } else if (windowModeString.compare("borderless") == 0) {
         windowMode = SDL_WINDOW_FULLSCREEN;
     }
 
-    gameWindow = SDL_CreateWindow("SDVX Clone - frames per second: 0.00",
+    gameWindow = SDL_CreateWindow("SDVX Clone",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         resolution.x, resolution.y,
         SDL_WINDOW_OPENGL | windowMode);
@@ -93,13 +91,19 @@ bool Game::init() {
         return false;
     }
 
+    Logging::info("Initializing renderer.");
+
     if (!Renderer::init(resolution)) {
         Logging::error("Failed to initialize Renderer.\n");
         Game::quit();
         return false;
     }
 
+    Logging::info("Setting scene.");
+
     Scene::setScene(SceneList::Gameplay);
+
+    Logging::info("Game initialized.");
     
     running = true;
 
@@ -151,12 +155,12 @@ void Game::loop() {
 
     unsigned long long lastTick, currentTick;
     lastTick = currentTick = SDL_GetPerformanceCounter();
-    unsigned long long runTime = 0;
+    double runTime = 0;
     unsigned int cycleTime = 0;
 
     while (running) {
         currentTick = SDL_GetPerformanceCounter();
-        unsigned long long tickDelta = ((currentTick - lastTick) * 1000) / SDL_GetPerformanceFrequency();
+        float tickDelta = (float)((currentTick - lastTick) * 1000) / SDL_GetPerformanceFrequency();
         while (SDL_PollEvent(&event)) {
             handleEvent(&event);
         }
@@ -171,11 +175,11 @@ void Game::loop() {
         SDL_GL_SwapWindow(gameWindow);
         renderFrameEnd = SDL_GetPerformanceCounter();
 
-        updateFrameTime = (double)((updateFrameTime) * 1000.0 / SDL_GetPerformanceFrequency());
-        renderFrameTime = (double)((renderFrameTime) * 1000.0 / SDL_GetPerformanceFrequency());
+        updateFrameTime = ((double)(updateFrameEnd - updateFrameStart) * 1000.0 / (double)SDL_GetPerformanceFrequency());
+        renderFrameTime = ((double)(renderFrameEnd - renderFrameStart) * 1000.0 / (double)SDL_GetPerformanceFrequency());
 
         if (cycleTime >= 1000) {
-            snprintf(buf, 64, "SDVX Clone - %dms/render - %dms/update - runtime: %llu", updateFrameTime, renderFrameTime, runTime);
+            snprintf(buf, 64, "SDVX Clone - %0.3fms/render - %0.3fms/update - runtime: %0.3f", updateFrameTime, renderFrameTime, runTime);
             SDL_SetWindowTitle(gameWindow, buf);
             cycleTime -= 1000;
         }

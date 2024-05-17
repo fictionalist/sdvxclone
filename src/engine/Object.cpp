@@ -13,6 +13,7 @@ Object::Object() {
     color = glm::vec4(1.0f);
     position = glm::vec3(0.0f);
     rotation = glm::vec3(0.0f);
+    canScroll = false;
     resetTransform();
 }
 
@@ -59,12 +60,17 @@ void Object::update(unsigned int deltaTick) {
 
 }
 
+void Object::setScrollability(bool b) {
+    canScroll = b;
+}
+
 void Object::draw() {
     if (!visible) return;
     if (model != nullptr && shader != nullptr) {
         shader->use();
         shader->setMat4("uModel", transformMatrix);
         shader->setVec4("uColor", color);
+        shader->setInt("uCanScroll", canScroll);
         model->draw(shader, texture);
     }
 }

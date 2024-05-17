@@ -15,6 +15,7 @@ protected:
     Texture* texture;
     glm::vec4 color;
     bool visible;
+    bool canScroll;
 
     void resetTransform();
 public:
@@ -27,6 +28,7 @@ public:
 
     Model* model;
 
+    void setScrollability(bool);
     void setPosition(glm::vec3);
     glm::vec3 getPosition();
     void setRotation(glm::vec3 axisAngles);

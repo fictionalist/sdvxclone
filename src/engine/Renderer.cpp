@@ -132,19 +132,26 @@ bool Renderer::generatePostProcessBuffer() {
 }
 
 bool Renderer::init(glm::ivec2 initialResolution) {
+    Logging::info("Renderer: Initializing font library.");
     if (!Font::init()) {
         quit();
         return false;
     }
 
+    Logging::info("Renderer: Initializing image module.");
+
     Image::init();
 
     resolution = initialResolution;
+
+    Logging::info("Renderer: Generating post-processing buffers.");
 
     generatePostProcessBuffer();
 
     interfaceProjection = glm::ortho(0.0f, (float)resolution.x, (float)resolution.y, 0.0f, -1.0f, 1.0f);
     gameProjection = glm::perspective(glm::radians(45.0f), (float)resolution.x / (float)resolution.y, 0.1f, 500.0f);
+
+    Logging::info("Renderer: Generating base shaders.");
     
     defaultShader = new Shader("default shader");
     defaultShader->loadShader("./data/shaders/default.vert", GL_VERTEX_SHADER);
@@ -171,16 +178,24 @@ bool Renderer::init(glm::ivec2 initialResolution) {
     processShader->link();
     processShader->setInt("renderedFrame", 0);
 
+    Logging::info("Renderer: Generating base font.");
+
     defaultFont = new Font("./data/fonts/NotoSans-Regular.ttf", 24);
     
+    Logging::info("Renderer: Initializing default camera values.");
+
     Camera::init(defaultShader);
     Camera::setPosition(glm::vec3(0.0f, 0.0f, 10.0f));
     Camera::lookAt(glm::vec3(0.0f));
+
+    Logging::info("Renderer: Setting default OpenGL values.");
 
     glViewport(0, 0, resolution.x, resolution.y);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    Logging::info("Renderer: Initialized.");
 
     initialized = true;
     return true;
